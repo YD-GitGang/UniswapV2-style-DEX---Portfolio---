@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+      background: linear-gradient(to bottom, #141827 0%, #070816 100%);
+      width: 100vw;
+      height: 100vh;
+      background-attachment: fixed;
+      @apply text-white;
+  }
+}
