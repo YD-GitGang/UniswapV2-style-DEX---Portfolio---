@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env
 
 # vercel
 .vercel
@@ -46,3 +47,8 @@ hardhat/typechain-types
 # Hardhat files
 hardhat/cache
 hardhat/artifacts
+
+
+# .eth-gas-report.json
+# .hardhat-reports/
+# .history/

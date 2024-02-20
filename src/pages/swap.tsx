@@ -10,9 +10,9 @@ const SwapPage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>UniswapV2StyleDex Swap</title>
+                <title>milkSwap</title>
             </Head>
-            <Header />
+            <Header page='swap'/>
             <p>Here is Swap Page</p>
             <p>ChainId: {chainId}</p>
             <p>currentAccount: {currentAccount}</p>

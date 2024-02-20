@@ -10,8 +10,8 @@ type ChainContextProviderProps = { children: React.ReactNode }
 export const ChainContextProvider = ({ children }: ChainContextProviderProps) => {
     const [chainId, setChainId] = useState<number>()  //(※1)
     const [currentAccount, setCurrentAccount] = useState<string>()  //(※2)
-    const [aaa, setaaa] = useState<any>()  //provider の中身見る用 無視して良い
-    const [bbb, setbbb] = useState<any>()  //ethersProvider の中身見る用 無視して良い
+    const [test1, setTest1] = useState<any>()  //provider の中身見る用 無視して良い
+    const [test2, setTest2] = useState<any>()  //ethersProvider の中身見る用 無視して良い
     /*
      - (※1)とか(※2)を関数コンポーネント外に書いたらダメなのかなと試しに書いたらエラー吐いてなんでかなーと思ってたけど、
      - フックを呼び出すのはReactの関数内のみらしい。
@@ -33,8 +33,8 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
             const chainId = network.chainId
             setChainId(chainId)
 
-            setaaa(provider)  //provider の中身見る用 無視して良い
-            setbbb(ethersProvider)  //ethersProvider の中身見る用 無視して良い
+            setTest1(provider)  //provider の中身見る用 無視して良い
+            setTest2(ethersProvider)  //ethersProvider の中身見る用 無視して良い
         } else {
             alert('Please install Metamask wallet')
         }
@@ -42,7 +42,7 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
     /*
      - (※3)
      - "DetectEthereumProvider"は、ブラウザがEthereumプロバイダ（たとえば、MetaMask）を提供しているかどうかを検出するのだろう。
-     - つまりここ定義したprovider変数はメタマスクそのものと考えていい...多分。
+     - つまりここで定義したprovider変数はメタマスクそのものと考えていい...多分。
      - Ethereumプロバイダは、ウェブページとEthereumブロックチェーンとの間の通信を担当して、ユーザーのアカウントの管理やトランザクションの署名
      - などを担当。
      - "DetectEthereumProvider"によりウェブ開発者はユーザーがEthereumプロバイダを持っているかどうかを確認しできる。だから例えばな使い方として、
@@ -50,7 +50,7 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
      -
      = (※4)(※5)
      - awaitしなくても良さそうなのになと思った。というのもethersProviderに値があるもんだと思ってたから。でもおそらく値そのものはなくて、
-     - 値を探しに行く色んな関数があるんだろう、きっと。コンソールに出力して見てみたけど階層深すぎて良く分からなかったし...。
+     - 値を探しに行く色んな関数があるんだろう、きっと。コンソールに出力して見てみたけど階層深すぎて良く分からなかった...。
     */
     
     return (
@@ -59,8 +59,8 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
                 chainId,
                 currentAccount,
                 connectWallet,
-                aaa,
-                bbb
+                test1,
+                test2
             }}
         >
             {children}

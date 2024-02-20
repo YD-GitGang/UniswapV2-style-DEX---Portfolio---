@@ -10,9 +10,9 @@ const PoolPage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>UniswapV2StyleDex Pool</title>
+                <title>milkSwap | Pool</title>
             </Head>
-            <Header />
+            <Header page='pool'/>
             <p>Here is PoolPage</p>
             <p>ChainId: {chainId}</p>
             <p>currentAccount: {currentAccount}</p>

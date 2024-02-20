@@ -1,0 +1,6 @@
+[
+    {"chainId": 1, "name": "Ethereum", "symbol": "ETH", "explorer": "https://etherscan.io", "logo": "ethereum.svg"},
+    {"chainId": 11155111, "name": "Sepolia", "symbol": "ETH", "explorer": "https://sepolia.etherscan.io", "logo": "sepolia.svg"},
+    {"chainId": 137, "name": "Polygon", "symbol": "MATIC", "explorer": "https://polygonscan.com", "logo": "polygon.svg"},
+    {"chainId": 31337, "name": "Hardhat", "symbol": "ETH", "explorer": "", "logo": "hardhat.svg"}
+]
