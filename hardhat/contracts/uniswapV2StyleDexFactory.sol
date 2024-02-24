@@ -19,7 +19,7 @@ contract uniswapV2StyleDexFactory {
         uniswapV2StyleDexPool poolContract = new uniswapV2StyleDexPool{salt: salt}();  // (※1)
         poolContract.initialize(token0,token1);
 
-        pool = address(poolContract);
+        pool = address(poolContract);     // (※3)
         getPool[token0][token1] = pool;
         getPool[token1][token0] = pool;
         emit PoolCreated(token0, token1, pool);
@@ -36,4 +36,8 @@ contract uniswapV2StyleDexFactory {
  - インポートしたuniswapV2StyleDexPool.solもろともコンパイルしてデプロイするんだろう、きっと。
  - だから uniswapV2StyleDexFactory と共に uniswapV2StyleDexPool のabiとbytecodeもネットワークに書き込まれてるんだろう、きっと。(※1)で
  - コントラクトのインスタンスを作る時abiもbytecodeも渡さずに済んでるのはそのせいだろう、きっと。
+ -
+ - (※3)
+ - アドレスをゲットするときの書き方がTypescriptとSolidityで少し違う。
+ - Typescriptでは .address だがSolidityでは address() だ(例: address(poolContract), address(this), address(0))。
 */

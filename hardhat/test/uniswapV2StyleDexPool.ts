@@ -42,9 +42,14 @@ describe("uniswapV2StyleDexPool test", function() {
         const liquidity = Math.sqrt(token0Amount * token1Amount);
         await token0.transfer(pool.address, token0Amount);
         await token1.transfer(pool.address, token1Amount);
-        await pool.connect(account2).mint(account1.address);
+        await pool.connect(account2).mint(account1.address);   // (※3)
 
         return { account0, account1, account2, factory, pool, token0, token1 }
+
+        /*
+         - アドレスをゲットするときの書き方がTypescriptとSolidityで少し違う。
+         - Typescriptでは .address だがSolidityでは address() だ(例: address(poolContract), address(this), address(0))。
+        */
     }
 
     describe("state variables", function() {

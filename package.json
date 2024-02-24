@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "ci-and-compile": "npm ci && npm ci --prefix hardhat && npm run compile --prefix hardhat",
-    "clean": "rm -rf node_modules && npm run clean --prefix hardhat"
+    "clean": "rm -rf node_modules && npm run clean --prefix hardhat",
+    "test-node": "cd hardhat && ((sleep 3 && npx hardhat run --network localhost scripts/deployTestFixture.ts) & npx hardhat node)"
   },
   "dependencies": {
     "@headlessui/react": "^1.7.12",
