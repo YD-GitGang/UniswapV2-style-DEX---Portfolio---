@@ -1,7 +1,11 @@
 import { createContext, useState } from 'react'
 import type React from 'react'
 import { ethers, providers } from 'ethers'
+import type { Signer, Contract, BigNumber } from 'ethers'
 import detectEthereumProvider from '@metamask/detect-provider'
+import { loadTokenData, loadContractData } from '../lib/load'
+import IERC20 from '../../hardhat/artifacts/contracts/interfaces/IERC20.sol/IERC20.json'
+import uniswapV2StyleDexFactory from '../../hardhat/artifacts/contracts/uniswapV2StyleDexFactory.sol/uniswapV2StyleDexFactory.json'
 
 type Chain = any
 export const ChainContext = createContext<Chain>({})
@@ -10,6 +14,9 @@ type ChainContextProviderProps = { children: React.ReactNode }
 export const ChainContextProvider = ({ children }: ChainContextProviderProps) => {
     const [chainId, setChainId] = useState<number>()  //(※1)
     const [currentAccount, setCurrentAccount] = useState<string>()  //(※2)
+    const [signer, setSigner] = useState<Signer>()
+    const [factoryAddress, setFactoryAddress] = useState<string>()
+    const [routerAddress, setRouterAddress] = useState<string>()
     const [test1, setTest1] = useState<any>()  //provider の中身見る用 無視して良い
     const [test2, setTest2] = useState<any>()  //ethersProvider の中身見る用 無視して良い
     /*
@@ -21,17 +28,24 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
     async function connectWallet() {
         const provider = await detectEthereumProvider({ silent: true });  //(※3)
         if (provider) {
-            const ethersProvider = new providers.Web3Provider(provider)
-
+            const ethersProvider = new providers.Web3Provider(provider)  // (※10)
             //account
             const accountList: string[] = await ethersProvider.listAccounts()  //(※4)
             if(accountList.length === 0) { alert('Please unlock the MetaMask wallet and/or manually connect the MetaMask to the current site.'); return }
             setCurrentAccount(ethers.utils.getAddress(accountList[0]))
-            
             //chainId
             const network = await ethersProvider.getNetwork()  //(※5)
             const chainId = network.chainId
             setChainId(chainId)
+            // signer
+            const signer = ethersProvider.getSigner()  // (※6)
+            setSigner(signer)    // (※9)
+            // contract address
+            setFactoryAddress(loadContractData(chainId)?.factory)  // (※8)(※9)。 ?について。possibly 'undefined'。
+            setRouterAddress(loadContractData(chainId)?.router)  // ?について。possibly 'undefined'。
+
+            provider.on("chainChanged", () => { window.location.reload() })  // (※11)
+            provider.on("accountsChanged", () => { window.location.reload() })
 
             setTest1(provider)  //provider の中身見る用 無視して良い
             setTest2(ethersProvider)  //ethersProvider の中身見る用 無視して良い
@@ -51,14 +65,63 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
      = (※4)(※5)
      - awaitしなくても良さそうなのになと思った。というのもethersProviderに値があるもんだと思ってたから。でもおそらく値そのものはなくて、
      - 値を探しに行く色んな関数があるんだろう、きっと。コンソールに出力して見てみたけど階層深すぎて良く分からなかった...。
+     -
+     - (※6)
+     - メタマスクの場合秘密鍵って各アカウント毎に違うよね。シークレットリカバリーフレーズは1つだけど。なら「ethersProvider.各アカウント.getSigner()」
+     - ってなると思ったけど。getSigner()で取ってくるのは秘密鍵じゃなくて署名用の何かなのかな。
+     - currentAccountはethersProvider.listAccotnt()の配列の0番目の要素を取り出してるあたり他のアカウント(公開鍵)も配列に入ってるのかもしれない。
+     - 0番目にくるのが今使ってるアカウントということなんだろう。となるとメタマスクは各アカウント毎に秘密鍵があるから秘密鍵も配列があってその0番目を
+     - 取り出すのかとおもいきや、ethersProvider.getSigner()で取れる秘密鍵的なやつは自動で0番目のアカウント(公開鍵)の秘密鍵なのかなきっと。
+     -
+     - (※8)
+     - 郵便を友達に送る時住所は事前に聞いておく必要あるのと同じ。エクスプローラとかで調べてjsonにメモっとく。
+     - アカウントのアドレスはブラウザにイーサリアムプロバイダー(メタマスク)があればそれを手がかりにするからメモいらん。
+     -
+     - (※9)
+     - stateに保持する理由。再レンダリングか再レンダリング毎に変化する変数を再計算したいものは全部stateにしろ。コネクトウォレットボタンを押して
+     - ネットワークが変わりchianIdが変わる度に別のネットワークのファクトリーコントラクトやルーターコントラクトに再計算する必要がある。setSignerは、
+     - メタマスク内でアカウントを変えたときに再計算する必要がある。どちらも直接画面に映し出される内容ではないがUIのボタンを押して再レンダリングされた時に
+     - その再レンダリングの内容にあわせて内部で再評価しなきゃいけない内容。
+     -
+     - (※10)
+     - ethersProviderがプロバイダーだと思ってたが多分違くて、ethersProviderはプロバイダーとか秘密鍵とか公開鍵とかchainIDとか全部入ってるイーサリ
+     - アムプロバイダー(今回はメタマスク)そのもの的なやつなんだろう。
+     -
+     - (※11)
+     - こいつは監視対象のイベントがメタマスクから発生すると指定した関数のみ計算する。ということでどこに記述しようが問題ないらしい。Headerコンポーネント
+     - に記述しても多分いける。ただ責任の分離などの理由からContextに記述されている多分。そもそもprovider.onのproviderをContextでdetectしてるし。
+     - あと第二引数の書き方が直でwindow.〜じゃなくてアロー関数の中にwindow.〜を書いてるけど、この書き方よく見る。おそらく引数とか受け取りたいときとか
+     - 他の関数も沢山書きたい様にこういう仕様にしてるんだろう。直で書いたらその直で書いた関数しか実行できないから。
     */
     
+    async function getDisplayBalance(address: string): Promise<string> {
+        const decimals: number = loadTokenData(chainId!, address)!.decimals  // !について。possibly 'undefined'。
+        const tokenContract: Contract = new ethers.Contract(address, IERC20.abi, signer!.provider)  // (※7)。 !について。possibly 'undefined'。
+        const balance: BigNumber = await tokenContract.balanceOf(currentAccount)
+        return ethers.utils.formatUnits(balance.toString(), decimals)  // (※12)
+    }
+    /** 
+     * (※7)
+     * 「ブロックチェーンにデプロイされたコントラクト」から同じく「ブロックチェーンにデプロイされたコントラクト」にアクセスしていたsolidityの時とは
+     * 書き方違う。ブロックチェーン上からであればアドレスとインターフェースさえあればokだが、ブロックチェーン外からブロックチェーンにアクセスする場合は
+     * abiとか色々必要。
+    */
+
+    async function getPoolAddress(addressA: string, addressB: string): Promise<string | undefined> {
+        const factoryContract: Contract = new ethers.Contract(factoryAddress!, uniswapV2StyleDexFactory.abi, signer!.provider) //!。possibly 'undefined'
+        const poolAddress: string = await factoryContract.getPool(addressA, addressB)
+        if ( poolAddress === ethers.constants.AddressZero ) { return undefined } else { return poolAddress } //if(poolAddress === undefined)でもokきっと
+    }
+
     return (
         <ChainContext.Provider
             value = {{
                 chainId,
                 currentAccount,
+                signer,
                 connectWallet,
+                getDisplayBalance,
+                getPoolAddress,
                 test1,
                 test2
             }}

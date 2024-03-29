@@ -38,6 +38,7 @@ const Header = (props: {page: string}) => {
         <div className={style.container}>
             <div className={style.logo}>
                 <Image src={logo} alt='logo' height={50}/>
+                <div>milkSwap</div>
             </div>
             <div className={style.navContainer}>
                 <Link href="/swap">
