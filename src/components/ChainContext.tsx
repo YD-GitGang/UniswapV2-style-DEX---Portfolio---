@@ -1,11 +1,12 @@
 import { createContext, useState } from 'react'
 import type React from 'react'
-import { ethers, providers } from 'ethers'
-import type { Signer, Contract, BigNumber } from 'ethers'
+import { ethers, providers, BigNumber } from 'ethers'
+import type { Signer, Contract } from 'ethers'
 import detectEthereumProvider from '@metamask/detect-provider'
-import { loadTokenData, loadContractData } from '../lib/load'
+import { loadTokenData, loadContractData } from '@/lib/load'
 import IERC20 from '../../hardhat/artifacts/contracts/interfaces/IERC20.sol/IERC20.json'
 import uniswapV2StyleDexFactory from '../../hardhat/artifacts/contracts/uniswapV2StyleDexFactory.sol/uniswapV2StyleDexFactory.json'
+const MAX_INT256 = BigNumber.from(2).pow(256).sub(1)  //なんで+とか-とか普通の記号使えないんだっけ...
 
 type Chain = any
 export const ChainContext = createContext<Chain>({})
@@ -113,6 +114,45 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
         if ( poolAddress === ethers.constants.AddressZero ) { return undefined } else { return poolAddress } //if(poolAddress === undefined)でもokきっと
     }
 
+    async function getAllowance(address: string): Promise<BigNumber> {
+        const tokenContract: Contract = new ethers.Contract(address, IERC20.abi, signer!.provider)  // (※13)。!。possibly 'undefined'
+        const allowance = await tokenContract.allowance(currentAccount, routerAddress)
+        return allowance
+    }
+    /** 
+     * (※13)
+     * signer.providerを見たとき
+     * cosnt provider = new ethers.providers.JsonRpcProvider(rpcUrl)
+     * const factory = new ethers.ContractFactory(~.abi, ~.bytecode, signer)
+     * みたいな素のethersでデプロイする時に作ったsignerに似てるって思った。signerの中からproviderを取り出してる感じとか。
+    */
+
+    async function sendApprovalTransaction(address: string): Promise<boolean> {
+        const tokenContract: Contract = new ethers.Contract(address, IERC20.abi, signer)
+        try {
+            const tx = await tokenContract.approve(routerAddress, MAX_INT256)  // (※14)
+            const receipt = await tx.wait()  // await tx.wait()だけでok。receipt使わない。
+            return true
+        } catch (err) {
+            return false
+        }
+    }
+    /** 
+     * (※14)
+     * approveの中のmsg.senderの値ってどうやって取得してんだろう。この関数を実行した人がmsg.senderなわけだけど70行目でsigner渡すからそこから
+     * 取得してんのかな。
+     * 
+     * メタマスクが我々とブロックチェーンを橋渡ししてくれるイメージ。
+     * まずメタマスクにハードハットネットワークとかポリゴンネットワークとかネットワーク情報を登録してそのネットワークとメタマスクを接続。
+     * detectEthereumProviderをすればブラウザにethereumプロバイダー(今回の場合メタマス)があるか検知し、そのethereumプロバイダーが接続してるネットワ
+     * ーク情報とかをゲットする。そのネットワーク情報からchainIdをゲットすれば、dataに登録してるcotractデータ群からメタマスクが今接続してるネットワーク
+     * のcontractをチョイスできる。そのコントラクトをコンパイルしたデータを事前に持っておいて、そのコンパイルしたデータからabiを準備する。そしてメタマス
+     * クが接続してるネットワークの情報からプロバイダー的なもの?url?をゲットする。このメタマスクからゲットした「chainIdからチョイスしたcontractのアドレ
+     * ス」と「コントラクトのabi」と「メタマスクからゲットしたプロバイダーてきなやつ」があれば、この3つから作ったコントラクトのインスタンスを実行したとき
+     * にメタマスクがプロバイダーとの橋渡しとして起動する。メタマスクが起動するのは、メタマスクからゲットしたプロバイダーをコントラクトのインスタンスに引
+     * 数として渡してるからだろう。めっちゃ多分。
+    */
+
     return (
         <ChainContext.Provider
             value = {{
@@ -122,6 +162,9 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
                 connectWallet,
                 getDisplayBalance,
                 getPoolAddress,
+                getAllowance,
+                sendApprovalTransaction,
+                routerAddress,
                 test1,
                 test2
             }}
@@ -131,3 +174,9 @@ export const ChainContextProvider = ({ children }: ChainContextProviderProps) =>
     )
 }
 
+/** 
+ * useContextにstate以外に関数も書く理由。多分useContextじゃなくて各コンポーネントで書こうと思えばできる。必要なstateを各コンポーネントでインポートしたりとかすれば。
+ * でも、例えばgetPoolAddress。この関数の中ではfactoryAddressというstate以外にsigner!.providerもある。signerを使うにはメタマスクのライブラリをインポ
+ * ートしてプロバイダーゲットしてイーサ用にそのプロバイダーを変換したりなど色々やることがある。これを各コンポーネントでやるくらいならひとつにまとめた方がそ
+ * りゃ良い。
+*/
