@@ -13,7 +13,6 @@ export interface ChainData {
     explorer: string
     logo: string
 }
-//interfaceエキスポートしてるけど、どこでインポートして使ってるんだ...
 //カンマで区切っても区切らなくてもいけるの不思議
 //(※3)以前に書かなくてもokなの不思議
 
@@ -25,6 +24,7 @@ export interface TokenData {
     decimals: number
     logo: string
 }
+//エキスポートしてPool.tsxで使ってる
 
 export interface ContractData {
     chainId: number

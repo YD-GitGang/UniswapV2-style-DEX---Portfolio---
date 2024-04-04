@@ -3,6 +3,7 @@ import Head from 'next/head'
 import type { NextPage } from 'next'
 import { ChainContext } from '@/components/ChainContext'
 import Header from '@/components/Header'
+import Pool from '@/components/Pool'
 
 const PoolPage: NextPage = () => {
     const { chainId, currentAccount }: any = useContext(ChainContext)
@@ -13,9 +14,7 @@ const PoolPage: NextPage = () => {
                 <title>milkSwap | Pool</title>
             </Head>
             <Header page='pool'/>
-            <p>Here is PoolPage</p>
-            <p>ChainId: {chainId}</p>
-            <p>currentAccount: {currentAccount}</p>
+            <Pool/>
         </>
     )
 }
