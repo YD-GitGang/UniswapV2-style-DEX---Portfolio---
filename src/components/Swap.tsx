@@ -35,7 +35,7 @@ export interface TxInfo {
     symbolOut: string
     displayAmountIn: string
     displayAmountOutRequested: string
-    displayAmountOutComfirmed: string
+    displayAmountOutConfirmed: string
     blockHash: string
     transactionHash: string
 }
@@ -53,7 +53,7 @@ const Swap = () => {
     const [status, setStatus] = useState<Status>(Status.WAIT_FOR_INPUT)
     const [isTxSubmittedOpen, setIsTxSubmittedOpen] = useState<boolean>(false)
     const [isTxConfirmedOpen, setIsTxConfirmedOpen] = useState<boolean>(false)
-    const emptyTxInfo: TxInfo = { symbolIn: '', symbolOut: '', displayAmountIn: '', displayAmountOutRequested: '', displayAmountOutComfirmed: '', blockHash: '', transactionHash: ''}
+    const emptyTxInfo: TxInfo = { symbolIn: '', symbolOut: '', displayAmountIn: '', displayAmountOutRequested: '', displayAmountOutConfirmed: '', blockHash: '', transactionHash: ''}
     const [txInfo, setTxInfo] = useState<TxInfo>(emptyTxInfo)
     const { chainId, signer, currentAccount, getPoolAddress, getDisplayBalance, getAllowance, sendApprovalTransaction, routerAddress } = useContext(ChainContext)
 
@@ -105,47 +105,52 @@ const Swap = () => {
         const deadline = Math.floor(Date.now() / 1000) + 120
         const router = new ethers.Contract(routerAddress, uniswapV2StyleDexRouter.abi, signer)
 
-    try {
-        const tx = await router.swapTokenPair(addressIn, addressOut, amountIn, amountOutMin, to, deadline)  // (※15)
+        try {
+            const tx = await router.swapTokenPair(addressIn, addressOut, amountIn, amountOutMin, to, deadline)  // (※15)
 
-        setTxInfo({
-            symbolIn: loadTokenData(chainId, inField.address)!.symbol,    // !について。possibly 'undefined'。
-            symbolOut: loadTokenData(chainId, outField.address)!.symbol,   // !について。possibly 'undefined'。
-            displayAmountIn: inField.displayAmount,         // txInfo.displayAmountIn と inField.displayAmount はイコール。
-            displayAmountOutRequested: outField.displayAmount,
-            displayAmountOutComfirmed: '',
-            blockHash: '',
-            transactionHash: tx.hash
-        })
+            setTxInfo({
+                symbolIn: loadTokenData(chainId, inField.address)!.symbol,    // !について。possibly 'undefined'。
+                symbolOut: loadTokenData(chainId, outField.address)!.symbol,   // !について。possibly 'undefined'。
+                displayAmountIn: inField.displayAmount,         // txInfo.displayAmountIn と inField.displayAmount はイコール。
+                displayAmountOutRequested: outField.displayAmount,
+                displayAmountOutConfirmed: '',
+                blockHash: '',
+                transactionHash: tx.hash
+            })
 
-        setIsTxSubmittedOpen(true)
+            setIsTxSubmittedOpen(true)
 
-        //DEBUG
-        await new Promise(resolve => setTimeout(resolve, 3000))  // hardhatネットワーク用の3秒待機
+            //DEBUG
+            await new Promise(resolve => setTimeout(resolve, 3000))  // hardhatネットワーク用の3秒待機
 
-        const receipt = await tx.wait()   // (※16)
-        const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
-        const parsedLogs = []
-        for(let log of receipt.logs) {
-            try {
-                parsedLogs.push(poolInterface.parseLog(log))
-            } catch (e) {}  // LogFeeTransfer event in Polygon cannot be parsed with the ABI
+            const receipt = await tx.wait()   // (※16)
+            const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
+            const parsedLogs = []
+            for(let log of receipt.logs) {
+                try {
+                    parsedLogs.push(poolInterface.parseLog(log))  // (※23)
+                } catch (e) {}  // LogFeeTransfer event in Polygon cannot be parsed with the ABI
+            }
+            const swapEvent = parsedLogs.filter((event: any) => event.name === 'Swap')[0]
+            const [sender, amount0In, amount1In, amount0Out, amount1Out] = swapEvent.args
+            const amountOut = amount0In.isZero() ? amount0Out : amount1Out
+            const decimalsOut = loadTokenData(chainId, outField.address)!.decimals   // !について。possibly 'undefined'。
+            const displayAmountOut = ethers.utils.formatUnits(amountOut, decimalsOut)
+            setTxInfo((prevState) => { return { ...prevState, blockHash: receipt.blockHash, displayAmountOutConfirmed: displayAmountOut }})
+
+            setIsTxSubmittedOpen(false)
+            setIsTxConfirmedOpen(true)
+
+            return true
+        } catch (error: any) {
+            console.log('sendSwapTransaction err', error)
+            const code = error?.code
+            const reason = error?.reason
+            if (code !== undefined && code !== "ACTION_REJECTED" && reason !== undefined) {
+                alert(`[Reason for transaction failure] ${reason}`)   // (※22)
+            }
+            return false
         }
-        const swapEvent = parsedLogs.filter((event: any) => event.name === 'Swap')[0]
-        const [sender, amount0In, amount1In, amount0Out, amount1Out] = swapEvent.args
-        const amountOut = amount0In.isZero() ? amount0Out : amount1Out
-        const decimalsOut = loadTokenData(chainId, outField.address)!.decimals   // !について。possibly 'undefined'。
-        const displayAmountOut = ethers.utils.formatUnits(amountOut, decimalsOut)
-        setTxInfo((prevState) => { return { ...prevState, blockHash: receipt.blockHash, displayAmountOutComfirmed: displayAmountOut }})
-
-        setIsTxSubmittedOpen(false)
-        setIsTxConfirmedOpen(true)
-
-        return true
-    } catch (err) {
-        console.log('sendSwapTransaction err', err)
-        return false
-    }
     }
     /** 
      * (※15)(※16)
@@ -173,6 +178,15 @@ const Swap = () => {
      * ンに問い合わせる場合、そこで使われるAPIの使用で、ブロックチェーンから値を取得する前にその段階のCall StackとMicrotask Queuとその他のタスクキュ
      * ーを一旦終わらせレンダリングを済ませてしまうのではないだろうか。その後API側で非同期で計算した値をゲットしたら途中からまたコードを計算するとか。
      * もしくは、headlessUIを使用するとブラウザのAPIは即座に再レンダリングをするよう促すとか。
+     * 
+     * (※22)
+     * solidityで実装したコントラクト、そこのrequireで設定したエラー文が出る。
+     * 出力内容 → [Reason for transaction failure] Error: VM Exception while processing transaction: reverted with reason string
+     * 'uniswapV2StyleDexRouter: POOL_DOES_NOT_EXIST'
+     * 
+     * (※23)
+     * FactoryコントラクトのテストuniswapV2StyleDexFactory.tsの(※3)ように、poolコントラクトのインスタンス作って
+     * parsedLogs.push(pool.interface.parseLog(log)) としてもok。
     */
     
     useEffect(() => {
@@ -389,8 +403,8 @@ const Swap = () => {
                     onClose={() => setIsTxSubmittedOpen(false)}
                 />
                 <TxDialog
-                    title='Transaction Comfirmed!'
-                    message={`${txInfo.displayAmountIn} ${txInfo.symbolIn} swapped to ${txInfo.displayAmountOutComfirmed} ${txInfo.symbolOut}`} //(※13)
+                    title='Transaction Confirmed!'
+                    message={`${txInfo.displayAmountIn} ${txInfo.symbolIn} swapped to ${txInfo.displayAmountOutConfirmed} ${txInfo.symbolOut}`} //(※13)
                     txURL={`${loadChainData(chainId)?.explorer}/tx/${txInfo.transactionHash}`}   // ?について。possibly 'undefined'。
                     show={isTxConfirmedOpen}
                     onClose={() => setIsTxConfirmedOpen(false)}

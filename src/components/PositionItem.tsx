@@ -1,13 +1,16 @@
-import { ethers } from 'ethers'
-import type { BigNumber } from 'ethers'
+import { ethers, BigNumber } from 'ethers'
 import { useContext, useEffect, useState } from 'react'
+import { MouseEvent } from 'react'
 import Image from 'next/image'
 import { MinusCircleIcon } from '@heroicons/react/24/outline'
 import { ChainContext } from '@/components/ChainContext'
-import { loadTokenData, loadTokenLogo } from '@/lib/load'
+import TxDialog from '@/components/TxDialog'
+import { loadTokenData, loadTokenLogo, loadChainData } from '@/lib/load'
 import { positionItemStyle as style } from '@/styles/tailwindcss'
 import uniswapV2StyleDexERC20 from '../../hardhat/artifacts/contracts/uniswapV2StyleDexERC20.sol/uniswapV2StyleDexERC20.json'
 import uniswapV2StyleDexPool from '../../hardhat/artifacts/contracts/uniswapV2StyleDexPool.sol/uniswapV2StyleDexPool.json'
+import uniswapV2StyleDexRouter from '../../hardhat/artifacts/contracts/uniswapV2StyleDexRouter.sol/uniswapV2StyleDexRouter.json'
+const MAX_INT256 = BigNumber.from(2).pow(256).sub(1)
 
 export interface PositionData {  // (※5)
     address0: string
@@ -37,7 +40,11 @@ const PositionItem = (props: PositionItemProps) => {
     const liquidity = props.value.liquidity
     const [displayAmount0, setDisplayAmount0] = useState<string>("")  // (※7)
     const [displayAmount1, setDisplayAmount1] = useState<string>("")
-    const { chainId, signer, getPoolAddress } = useContext(ChainContext)
+    const [isTxSubmittedOpen, setIsTxSubmittedOpen] = useState<boolean>(false)
+    const [isTxConfirmedOpen, setIsTxConfirmedOpen] = useState<boolean>(false)  // (※13)
+    const emptyTxInfo = {displayAmount0: '', displayAmount1: '', blockHash: '', transactionHash: ''}  // (※12)
+    const [txInfo, setTxInfo] = useState(emptyTxInfo)   //(※11)
+    const { chainId, currentAccount, signer, getPoolAddress, routerAddress } = useContext(ChainContext)
     const token0Data = loadTokenData(chainId, address0)!  // (※1)
     const token1Data = loadTokenData(chainId, address1)!
     /** 
@@ -49,7 +56,97 @@ const PositionItem = (props: PositionItemProps) => {
      * stateにするモチベーション。balanceの値は都度都度変わるからその都度再レンダリングしたい。そしてこれはSwap.tsxの(※5)とかのuseEffectの第二引数とかみ
      * たいに他のstateの更新を誘発するために使われているのではなく、その逆で、他のstateの更新が引き金で発動したuseEffectによって更新される誘発される側の
      * state。
+     * 
+     * (※11)
+     * stateにするモチベーション。txDialogタグで表示する数値や内容は場面に応じて都度変えたいから。因みにswapの時と違い型を定めるのハショッてる。
+     * 
+     * (※12)
+     * displayAmount0: '' じゃなくて displayAmount0 = '' ってしそうになる。
+     * obj.a = 1　とか　abj['a'] = 1　とか　abj = {a: 1, b: 2, c: 3}　とかやり方色々。
+     * 
+     * (※13)
+     * stateにするモチベーション。2パターンの何か(今回の場合はtrueとfalse)を使って、一方がpropsに渡るとポップアップが開き、もう一方がpropsに渡るとポッ
+     * プアップは表示されない、みたいな事をしたいとき、2パターンの何かをstateにしてしまえば好きなタイミングに状態更新関数を使ってpropsに渡る値をスイッチ
+     * 出来る。
     */
+
+    async function handleRemove(e: MouseEvent<HTMLElement>) {
+        const success = await sendRemoveTransaction()
+
+        if (success) {
+            setDisplayAmount0('0')
+            setDisplayAmount1('0')
+        }
+    }
+
+    async function sendRemoveTransaction(): Promise<boolean> {
+
+        // Step 1. Give allowance
+        const poolAddress: string = await getPoolAddress(address0, address1)
+        const pool = new ethers.Contract(poolAddress, uniswapV2StyleDexPool.abi, signer)
+        const liquidity = await pool.balanceOf(currentAccount)   // propsにあるからこれ不要
+        const allowance = await pool.allowance(currentAccount, routerAddress)
+        if (liquidity.gt(allowance)) {
+            const tx0 = await pool.approve(routerAddress, MAX_INT256).catch((error: any) => {   // (※14)
+                console.log('Error while calling pool.approve in handleRemove')
+                return false
+            })
+            await tx0.wait()
+        }
+        /**
+         * (※14) 
+         * ・poolのapproveを起動したmsg.senderがどうやって分かるかというと、pool.approveするためにpoolコントラクトを作ったけどその時に引数に渡した
+         * signer。このsignerがmsg.sender。このコントラクトを起動してトランザクションを実行するために署名する人。このsignerはコネクトウォレットボタ
+         * ン押した時に検出したメタマスクからゲットしたやつ。つまりユーザーのアカウント。UIを操作してるユーザーがmsg.senderにちゃんとなってる。
+         * ・ethereumプロバイダーに問い合わせてブロックチェーンに書きこむ(読み取りではなくて)ときはエラーになる可能性もあるからcatch。ユーザーがUI
+         * 画面のキャンセルボタンを押したりした時とかかな。書き込まれるまでに時間かかってキャンセルの余地結構あるのかなきっと...
+        */
+
+        // Step 2. Call removeLiquidity
+        const deadline = Math.floor(Date.now() / 1000) + 120
+        const router = new ethers.Contract(routerAddress, uniswapV2StyleDexRouter.abi, signer)
+
+        try {
+            const tx = await router.removeLiquidity(address0, address1, liquidity, 0, 0, currentAccount, deadline)
+            setTxInfo({
+                displayAmount0: '',
+                displayAmount1: '',
+                blockHash: '',
+                transactionHash: tx.hash
+            })
+            setIsTxSubmittedOpen(true)
+            const receipt = await tx.wait()
+
+            //DEBUG
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
+            const parsedLogs = []
+            for (let log of receipt.logs) {
+                try {
+                    parsedLogs.push(poolInterface.parseLog(log))   // parsedLogs.push(pool.interface.parseLog(log)) でもok
+                } catch (e) {}
+            }
+            const burnEvent = parsedLogs.filter((event: any) => event.name === 'Burn')[0]
+            const { sender, amount0, amount1, to } = burnEvent.args
+            const decimals0 = token0Data.decimals
+            const decimals1 = token1Data.decimals
+            const displayAmount0Confirmed = ethers.utils.formatUnits(amount0, decimals0)
+            const displayAmount1Confirmed = ethers.utils.formatUnits(amount1, decimals1)
+            setTxInfo((prevState) => { return { ...prevState, displayAmount0: displayAmount0Confirmed, displayAmount1: displayAmount1Confirmed, blockHash: receipt.blockHash }})
+            setIsTxSubmittedOpen(false)
+            setIsTxConfirmedOpen(true)
+            return true
+        } catch (error: any) {
+            console.log('sendRemoveTransaction error', error)
+            const code = error?.code
+            const reason = error?.reason
+            if (code !== undefined && code !== "ACTION_REJECTED" && reason !== undefined) {
+                alert(`[Reason for transaction failure] ${reason}`)  // solidity の require で設定したエラー文が出る
+            }
+            return false
+        }
+    }
 
     useEffect(() => {
         const updateDisplayAmount = async function() {
@@ -113,12 +210,31 @@ const PositionItem = (props: PositionItemProps) => {
                     <div className={style.balanceText}>{token1Data.symbol} Locked Balance: {displayAmount1}</div>
                 </div>
                 <div className={style.removeButtonContainer}>
-                    <div className={style.removeButton}>
+                    {(displayAmount0 === '0' && displayAmount1 === '0') ?
+                    (<div className={style.inactiveRemoveButton}>
                         <MinusCircleIcon className={style.circleIcon}/>
                         Remove
-                    </div>
+                    </div>) :
+                    (<div onClick={handleRemove} className={style.removeButton}>
+                        <MinusCircleIcon className={style.circleIcon}/>
+                        Remove
+                    </div>)}
                 </div>
             </div>
+            {/* Dialogs */}
+            <TxDialog
+                title="Remove Liquidity Transaction Submitted"
+                txURL={`${loadChainData(chainId)?.explorer}/tx/${txInfo.transactionHash}`}
+                show={isTxSubmittedOpen}
+                onClose={() => setIsTxSubmittedOpen(false)}
+            />
+            <TxDialog
+                title="Transaction Confirmed!"
+                message={`${txInfo.displayAmount0} ${token0Data.symbol} and ${txInfo.displayAmount1} ${token1Data.symbol} are sent to your address`}
+                txURL={`${loadChainData(chainId)?.explorer}/tx/${txInfo.transactionHash}`}
+                show={isTxConfirmedOpen}
+                onClose={() => setIsTxConfirmedOpen(false)}
+            />
         </div>
     )
 }

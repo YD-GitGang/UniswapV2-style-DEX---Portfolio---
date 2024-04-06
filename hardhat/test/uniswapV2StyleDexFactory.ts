@@ -42,7 +42,7 @@ describe("uniswapV2StyleDexFactory", function () {
         const { factory } = await loadFixture(deployFactoryFixture);
         const tx = await factory.createPool(...TEST_ADDRESSES);
         const receipt = await tx.wait();
-        const event = factory.interface.parseLog(receipt.logs[0]);
+        const event = factory.interface.parseLog(receipt.logs[0]);  // (※3)
         expect(event.name).to.eq('PoolCreated');
         const poolAddress: string = event.args[2];
         expect(await factory.getPool(TEST_ADDRESSES[0], TEST_ADDRESSES[1])).to.eq(poolAddress);
