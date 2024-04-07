@@ -24,7 +24,7 @@ export interface TokenData {
     decimals: number
     logo: string
 }
-//エキスポートしてPool.tsxで使ってる
+//エキスポートしてPool.tsxとかAddLiquidityDialog.tsxで使ってる
 
 export interface ContractData {
     chainId: number

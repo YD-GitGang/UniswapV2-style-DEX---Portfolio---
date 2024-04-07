@@ -1,17 +1,20 @@
 import { ethers } from 'ethers'
 import { BigNumber } from 'ethers'
 import { useContext, useEffect, useState } from 'react'
+import type { MouseEvent } from 'react'
 import { InboxIcon } from '@heroicons/react/24/outline'
 import { ChainContext } from '@/components/ChainContext'
 import { loadTokenList } from '@/lib/load'
 import type { TokenData } from '@/lib/load'
 import PositionItem from '@/components/PositionItem'
 import type { PositionData } from '@/components/PositionItem'
+import AddLiquidityDialog from '@/components/AddLiquidityDialog'
 import { poolStyle as style } from '@/styles/tailwindcss'
 import uniswapV2StyleDexPool from '../../hardhat/artifacts/contracts/uniswapV2StyleDexPool.sol/uniswapV2StyleDexPool.json'
 
 const Pool = () => {
     const [positions, setPositions] = useState<Map<string, PositionData>>(new Map())  // (※2)
+    const [isOpen, setIsOpen] = useState<boolean>(false)
     const { chainId, currentAccount, signer, getPoolAddress } = useContext(ChainContext)
     /** 
      * (※2)
@@ -36,9 +39,11 @@ const Pool = () => {
      * 数だけ実行しても頭ん中で今fooは[]じゃなくて[1]だって自然に考える、それと同じ。
      * ・そういえばこういうsort内に書いてるのを即時関数という。定義した瞬間に実行される。後で呼び出す作業がいらない。function()｛｝とか()=>｛｝みたいな。
      * function()｛｝は無名関数とも言ったりするよね。
-
-
     */
+
+    const handleOpenAddLiquidity = (e: MouseEvent<HTMLElement>) => {
+        setIsOpen(true)
+    }
 
     useEffect(() => {
         const retrievePosition = async function(token0: TokenData, token1: TokenData) {
@@ -105,7 +110,7 @@ const Pool = () => {
                     <div className={style.title}> Pools </div>
                     <div className={style.addLiquidityButtonContainer}>
                         <div className={style.addLiquidityButton}>
-                            <div className={style.addLiquidityButtonText}> + Add Liquidity </div>
+                            <div onClick={handleOpenAddLiquidity} className={style.addLiquidityButtonText}> + Add Liquidity </div>
                         </div>
                     </div>
                 </div>
@@ -122,6 +127,7 @@ const Pool = () => {
                     }
                     {/* ↑ここ<></>で囲まないとmapで回したPositionItemタグを表示できない。(※4) */}
                 </div>
+                <AddLiquidityDialog show={isOpen} onClose={() => {setIsOpen(false)}}/>
             </div>
         </div>
     )

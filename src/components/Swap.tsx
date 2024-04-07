@@ -291,7 +291,7 @@ const Swap = () => {
     useEffect(() => {
         if(inField.address !== "" && inField.address === outField.address) {
             setTimeout(() => { alert("Pleace select a defferent token") }, 0)  // alert("Pleace select a defferent token")だけで良いよな,,,
-            return
+            return   // 条件に当てはまったらこの先計算不要だからreturnしちゃう。という事でuseEffect内の上の方に記述してる。
         }
 
         if (inField.address !== "") {      // (※12)
