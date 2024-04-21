@@ -1,15 +1,18 @@
 import { ethers, BigNumber } from 'ethers'
 import { useState, useContext, useEffect } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, MouseEvent } from 'react'
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { ChainContext } from '@/components/ChainContext'
-import { loadTokenData } from '@/lib/load'
+import { loadTokenData, loadChainData } from '@/lib/load'
 import type { TokenData } from '@/lib/load'
 import type { TokenField } from '@/components/Swap'
 import TokenCombobox from '@/components/TokenCombobox'
+import TxDialog from './TxDialog'
 import { AddLiquidityStyle as style } from '@/styles/tailwindcss'
 import uniswapV2StyleDexPool from '../../hardhat/artifacts/contracts/uniswapV2StyleDexPool.sol/uniswapV2StyleDexPool.json'
+import uniswapV2StyleDexRouter from '../../hardhat/artifacts/contracts/uniswapV2StyleDexRouter.sol/uniswapV2StyleDexRouter.json'
+import uniswapV2StyleDexERC20 from '../../hardhat/artifacts/contracts/uniswapV2StyleDexERC20.sol/uniswapV2StyleDexERC20.json'
 
 
 interface addLiquidityDialogProps {
@@ -18,12 +21,19 @@ interface addLiquidityDialogProps {
 }
 
 const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
-    const {show, onClose} = props
+    const {show, onClose} = props   // (※7)
     const emptyField: TokenField = { address: '', displayAmount: '', displayBalance: '' }
     const [AField, setAField] = useState<TokenField>(emptyField)
     const [BField, setBField] = useState<TokenField>(emptyField)
     const [isNewPair, setIsNewPair] = useState<boolean>(false)    // (※1)
-    const { chainId, signer, getPoolAddress, getDisplayBalance } = useContext(ChainContext)
+    const [isField, setIsField] = useState<boolean>(false)
+    const [hasAllowanceA, setHasAllowanceA] = useState<boolean>(false)
+    const [hasAllowanceB, setHasAllowanceB] = useState<boolean>(false)
+    const [isTxSubmittedOpen, setIsTxSubmittedOpen] = useState<boolean>(false)
+    const [isTxConfirmedOpen, setIsTxConfirmedOpen] = useState<boolean>(false)
+    const emptyTxInfo = { symbolA: '', symbolB: '', displayAmountDepositedA: '', displayAmountDepositedB: '', blockHash: '', transactionHash: '' }
+    const [txInfo, setTxInfo] = useState(emptyTxInfo)
+    const { chainId, signer, currentAccount, getPoolAddress, getDisplayBalance, getAllowance, sendApprovalTransaction, routerAddress } = useContext(ChainContext)
     /** 
      * (※1)
      * stateにするモチベーション。2パターンの何か(今回の場合はtrueとfalse)をstateにすると、好きなタイミングに状態更新関数を使ってスイッチみたいに使
@@ -52,8 +62,95 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
     }
 
     function handleAmountBChange(e: ChangeEvent<HTMLInputElement>) {
-        const cleansedDisplayAmountB = e.target.value.replace(/[^0-9.]+/g, '')
+        const cleansedDisplayAmountB = e.target.value.replace(/[^0-9.]+/g, '')  // (※5)
         setBField((prevState: TokenField) => { return { ...prevState, displayAmount: cleansedDisplayAmountB }})
+    }
+    /** 
+     * (※5)
+     * /[^0-9.]+/g と /[^0-9.]/g の違い。どちらも結果は同じである。 + 記号は「1回以上の繰り返し」を意味する。この場合は数値とピリオド以外の文字が1回
+     * 以上連続している場合にマッチする。例えば abc123.45def と入力されたら + がある場合 abc と def が連続する非数値・非ピリオド文字列としてマッチし,
+     * + がない場合各非数値・非ピリオド文字（a, b, c, d, e, f）が個別にマッチする。最終結果は同じだけど、+ がある場合は処理効率が良くなる。なぜなら、
+     * 連続する非数値・非ピリオド文字列を一度にマッチさせて削除できるから。+ がないと、文字列中の各非マッチ文字に対して個別の処理が必要になり、文字列が
+     * 長くなるほど処理時間が増加する可能性がある。
+    */
+
+    async function handleApproval(e: MouseEvent<HTMLElement>, address: string, setterBoolean: React.Dispatch<React.SetStateAction<boolean>>) {
+        const success: boolean = await sendApprovalTransaction(address)
+        if (success) {
+            setterBoolean(true)
+        }             //successがfalseだった時のエラー文をelseで書くとどっかのエラー文と重複するかな...
+    }
+
+    async function handleAdd(e: MouseEvent<HTMLElement>) {
+        const success = await sendAddTransaction()
+        if (success) {
+            closeAndCleanUp()   // (※9)
+        }             //successがfalseだった時のエラー文をelseで書かなくてもsendAddTransaction内で警告だしてる
+    }
+
+    async function sendAddTransaction(): Promise<boolean> {
+        const addressA = AField.address
+        const displayAmountA = AField.displayAmount
+        const symbolA = loadTokenData(chainId, addressA)!.symbol     // !について。possibly 'undefined'。
+        const decimalsA = loadTokenData(chainId, addressA)!.decimals     // !について。possibly 'undefined'。
+        const tokenA = new ethers.Contract(addressA, uniswapV2StyleDexERC20.abi, signer)
+        const amountADesired = ethers.utils.parseUnits(displayAmountA, decimalsA)
+
+        const addressB = BField.address
+        const displayAmountB = BField.displayAmount
+        const symbolB = loadTokenData(chainId, addressB)!.symbol     // !について。possibly 'undefined'。
+        const decimalsB = loadTokenData(chainId, addressB)!.decimals     // !について。possibly 'undefined'。
+        const tokenB = new ethers.Contract(addressB, uniswapV2StyleDexERC20.abi, signer)
+        const amountBDesired = ethers.utils.parseUnits(displayAmountB, decimalsB)
+
+        const deadline = Math.floor(Date.now() / 1000) + 120
+        const router = new ethers.Contract(routerAddress, uniswapV2StyleDexRouter.abi, signer)
+
+        try {
+            const tx = await router.addLiquidity(tokenA.address, tokenB.address, amountADesired, amountBDesired, 0, 0, currentAccount, deadline)
+            setTxInfo({
+                ...emptyTxInfo,
+                symbolA,
+                symbolB,
+                transactionHash: tx.hash
+            })
+            setIsTxSubmittedOpen(true)
+
+            // DEBUG
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            const receipt = await tx.wait()
+            const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
+            const poolAddress = await getPoolAddress(addressA, addressB)
+            const parsedLogs = receipt.logs     // (※8)
+                .filter((log: any) => log.address.toLowerCase() === poolAddress.toLowerCase())
+                .map((log: any) => poolInterface.parseLog(log))
+            const MintEvent = parsedLogs.filter((event: any) => event.name === 'Mint')[0]
+            const [sender, amount0, amount1] = MintEvent.args  // (※6)
+            const [amountDepositedA, amountDepositedB] = addressA < addressB ? [amount0, amount1] : [amount1, amount0]
+            const displayAmountDepositedA = ethers.utils.formatUnits(amountDepositedA, decimalsA)
+            const displayAmountDepositedB = ethers.utils.formatUnits(amountDepositedB, decimalsB)
+            setTxInfo((prevState) => { return {...prevState,
+                blockHash: receipt.blockHash,
+                displayAmountDepositedA: displayAmountDepositedA,
+                displayAmountDepositedB: displayAmountDepositedB,
+            }})
+            setIsTxSubmittedOpen(false)
+            setIsTxConfirmedOpen(true)
+
+            // (※10) DEBUG
+            // await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            return true
+        } catch (error: any) {
+            console.log('sendAddTransaction error', error)
+            const code = error?.code
+            const reason = error?.reason
+            if ( code !== undefined && code !== "ACTION_REJECTED" && reason !== undefined) {
+                alert(`[Reason for transaction failure] ${reason}`)
+            }
+            return false
+        }
     }
 
     useEffect(() => {
@@ -67,6 +164,16 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 const amountB: BigNumber = amountA.mul(reserveB).div(reserveA)
                 const displayAmountB: string = ethers.utils.formatUnits(amountB, decimalsB)
                 setBField((prevState: TokenField) => { return { ...prevState, displayAmount: displayAmountB }})
+                hasAllowance(addressB, amountB).then(setHasAllowanceB)
+            }
+        }
+
+        const hasAllowance = async function(address: string, requiredAllowance: BigNumber): Promise<boolean> {
+            const allowance: BigNumber = await getAllowance(address)
+            if (allowance.lt(requiredAllowance)) {
+                return false
+            } else {
+                return true
             }
         }
 
@@ -79,17 +186,21 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             try {
                 amountA = ethers.utils.parseUnits(AField.displayAmount, tokenAData.decimals)
             } catch (e: any) {
-                alert(`invalid input: ${e.reason}`)
+                alert(`Invalid 1st token input: ${e.reason}`)
                 return
             }
+            hasAllowance(addressA, amountA).then(setHasAllowanceA)
             updateDisplayAmountB(addressA, addressB, amountA, tokenBData.decimals)
+            setIsField(true)
+        } else {
+            setIsField(false)
         }
 
         // if input amount is empty, then clear the output amount
         if (AField.displayAmount === "") {
             setBField((prevState: TokenField) => { return { ...prevState, displayAmount: ""}})
         }
-    }, [AField.address, BField.address, AField.displayAmount, chainId, signer, getPoolAddress])
+    }, [AField.address, BField.address, AField.displayAmount, chainId, signer, getPoolAddress, getAllowance])
 
     useEffect(() => {
         if (AField.address !== "" && AField.address === BField.address) {
@@ -125,82 +236,117 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 setBField((prevState: TokenField) => { return { ...prevState, displayBalance: displayBalance}})
             })
         }
-    }, [AField.address, BField.address, getDisplayBalance])
+    }, [AField.address, BField.address, getDisplayBalance, getPoolAddress])
 
     return (
-        <Transition appear show={show} as={Fragment}>
-            {/* ↑(※3) */}
-            <Dialog as="div" className={style.dialog} onClose={closeAndCleanUp}>
-                {/* ↑(※2) */}
-                <Dialog.Overlay className={style.overlay}/>
-                <Transition.Child
-                    as={Fragment}
-                    enter="ease-out duration-300"
-                    enterFrom="opacity-0 scale-95"
-                    enterTo="opacity-100 scale=100"
-                    leave="ease-in duration-200"
-                    leaveFrom="opacity-100 scale-100"
-                    leaveTo="opacity-0 scale-95"
-                >
-                    <div className={style.panelContainer}>
-                        <Dialog.Panel className={style.panel}>
-                            <div className={style.titleContainer}>
-                                <Dialog.Title as="h3" className={style.title}>
-                                    Add Liquidity to a Pool
-                                </Dialog.Title>
-                            </div>
-                            <div>
-                                {/* tokenA field */}
-                                <div className={style.currencyContainer}>
-                                    <div className={style.currencyInputContainer}>
-                                        <input
-                                            type='text'
-                                            className={style.currencyInput}
-                                            placeholder='0'
-                                            onChange={handleAmountAChange}
-                                            value={AField.displayAmount}
-                                        />
+        <>
+            <Transition appear show={show} as={Fragment}>
+                {/* ↑(※3) */}
+                <Dialog as="div" className={style.dialog} onClose={closeAndCleanUp}>
+                    {/* ↑(※2) */}
+                    <Dialog.Overlay className={style.overlay}/>
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0 scale-95"
+                        enterTo="opacity-100 scale=100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100 scale-100"
+                        leaveTo="opacity-0 scale-95"
+                    >
+                        <div className={style.panelContainer}>
+                            <Dialog.Panel className={style.panel}>
+                                <div className={style.titleContainer}>
+                                    <Dialog.Title as="h3" className={style.title}>
+                                        Add Liquidity to a Pool
+                                    </Dialog.Title>
+                                </div>
+                                <div>
+                                    {/* tokenA field */}
+                                    <div className={style.currencyContainer}>
+                                        <div className={style.currencyInputContainer}>
+                                            <input
+                                                type='text'
+                                                className={style.currencyInput}
+                                                placeholder='0'
+                                                onChange={handleAmountAChange}
+                                                value={AField.displayAmount}
+                                            />
+                                        </div>
+                                        <div className={style.currencySelector}>
+                                            <TokenCombobox chainId={chainId} setTokenField={setAField}/>
+                                        </div>
                                     </div>
-                                    <div className={style.currencySelector}>
-                                        <TokenCombobox chainId={chainId} setTokenField={setAField}/>
+                                    <div className={style.currencyBalanceContainer}>
+                                        <div className={style.currencyBalance}>
+                                            { AField.displayBalance !== "" ? (<>{`Balance: ${AField.displayBalance}`}</>) : null }
+                                        </div>
+                                    </div>
+                                    {/* tokenB field */}
+                                    <div className={style.currencyContainer}>
+                                        <div className={style.currencyInputContainer}>
+                                            <input
+                                                type='text'
+                                                className={style.currencyInput}
+                                                placeholder='0'
+                                                disabled={!isNewPair}
+                                                onChange={handleAmountBChange}
+                                                value={BField.displayAmount}
+                                            />
+                                        </div>
+                                        <div className={style.currencySelector}>
+                                            <TokenCombobox chainId={chainId} setTokenField={setBField}/>
+                                        </div>
+                                    </div>
+                                    <div className={style.currencyBalanceContainer}>
+                                        <div className={style.currencyBalance}>
+                                            {BField.displayBalance !== "" ? (<>{`Balance: ${BField.displayBalance}`}</>) : null}
+                                        </div>
+                                    </div>
+                                    {/* buttons */}
+                                    <div className={style.messageContainer}>
+                                        { isNewPair ? (<div>New Pool will be created. Please deposit tokens of equal value at current market prices.</div>) : null }
+                                    </div>
+                                    <div className={style.buttonOuterContainer}>
+                                        {!isField ? (<button type="button" className={style.inactiveConfirmButton}>Confirm</button>) : null}
+                                        {(isField && (!hasAllowanceA || !hasAllowanceB)) ? (
+                                            <div className={style.buttonListContainer}>
+                                                {!hasAllowanceA ?
+                                                    (<button onClick={e => handleApproval(e, AField.address, setHasAllowanceA)} className={style.approveButton}>
+                                                        {`Allow to use your ${loadTokenData(chainId, AField.address)?.symbol} (one time approval)`}
+                                                    </button>) : null}
+                                                {!hasAllowanceB ?
+                                                    (<button onClick={e => handleApproval(e, BField.address, setHasAllowanceB)} className={style.approveButton}>
+                                                        {`Allow to use your ${loadTokenData(chainId, BField.address)?.symbol} (one time approval)`}
+                                                    </button>) : null}
+                                            </div>
+                                        ) : null}
+                                        {(isField && hasAllowanceA && hasAllowanceB) ? (
+                                            <button type="button" onClick={handleAdd} className={style.confirmButton}>Confirm</button>
+                                        ) : null}
                                     </div>
                                 </div>
-                                <div className={style.currencyBalanceContainer}>
-                                    <div className={style.currencyBalance}>
-                                        { AField.displayBalance !== "" ? (<>{`Balance: ${AField.displayBalance}`}</>) : null }
-                                    </div>
-                                </div>
-                                {/* tokenB field */}
-                                <div className={style.currencyContainer}>
-                                    <div className={style.currencyInputContainer}>
-                                        <input
-                                            type='text'
-                                            className={style.currencyInput}
-                                            placeholder='0'
-                                            disabled={!isNewPair}
-                                            onChange={handleAmountBChange}
-                                            value={BField.displayAmount}
-                                        />
-                                    </div>
-                                    <div className={style.currencySelector}>
-                                        <TokenCombobox chainId={chainId} setTokenField={setBField}/>
-                                    </div>
-                                </div>
-                                <div className={style.currencyBalanceContainer}>
-                                    <div className={style.currencyBalance}>
-                                        {BField.displayBalance !== "" ? (<>{`Balance: ${BField.displayBalance}`}</>) : null}
-                                    </div>
-                                </div>
-                                {/* buttons */}
-                                <div className={style.messageContainer}>
-                                    { isNewPair ? (<div>New Pool will be created. Please deposit tokens of equal value at current market prices.</div>) : null }
-                                </div>
-                            </div>
-                        </Dialog.Panel>
-                    </div>
-                </Transition.Child>
-            </Dialog>
-        </Transition>
+                            </Dialog.Panel>
+                        </div>
+                    </Transition.Child>
+                </Dialog>
+            </Transition>
+            {/* AddLiquidity Transaction Dialogs */}
+            <TxDialog
+                title='Transaction Submitted'
+                txURL={`${loadChainData(chainId)?.explorer}/tx/${txInfo.transactionHash}`}
+                show={isTxSubmittedOpen}
+                onClose={() => setIsTxSubmittedOpen(false)}
+            />
+            <TxDialog
+                title='Transaction Confirmed!'
+                message={`${txInfo.displayAmountDepositedA} ${txInfo.symbolA} and ${txInfo.displayAmountDepositedB} ${txInfo.symbolB} are sent from your address to the pool.`}
+                txURL={`${loadChainData(chainId)?.explorer}/tx/${txInfo.transactionHash}`}
+                show={isTxConfirmedOpen}
+                onClose={() => setIsTxConfirmedOpen(false)}
+            />
+            {/* (※11) messageの箇所について */}
+        </>
     )
 }
 /** 

@@ -101,7 +101,7 @@ const Pool = () => {
             const tokenList = loadTokenList(chainId)
             retrieveAllPositions(tokenList)
         }
-    }, [currentAccount, chainId, signer, getPoolAddress])
+    }, [currentAccount, chainId, signer, getPoolAddress, isOpen])
 
     return (
         <div className={style.outerContainer}>
