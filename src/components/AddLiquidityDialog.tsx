@@ -26,7 +26,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
     const [AField, setAField] = useState<TokenField>(emptyField)
     const [BField, setBField] = useState<TokenField>(emptyField)
     const [isNewPair, setIsNewPair] = useState<boolean>(false)    // (※1)
-    const [isField, setIsField] = useState<boolean>(false)
+    const [isFilled, setIsFilled] = useState<boolean>(false)
     const [hasAllowanceA, setHasAllowanceA] = useState<boolean>(false)
     const [hasAllowanceB, setHasAllowanceB] = useState<boolean>(false)
     const [isTxSubmittedOpen, setIsTxSubmittedOpen] = useState<boolean>(false)
@@ -48,6 +48,9 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
         setAField(emptyField)
         setBField(emptyField)
         setIsNewPair(false)
+        setIsFilled(false)
+        setHasAllowanceA(false)
+        setHasAllowanceB(false)   //(※12)
     }
     /** 
      * (※4)
@@ -122,11 +125,11 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             const receipt = await tx.wait()
             const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
             const poolAddress = await getPoolAddress(addressA, addressB)
-            const parsedLogs = receipt.logs     // (※8)
+            const parsedLogs = receipt.logs     // (※8) logにして2個目のダイアログでなかった
                 .filter((log: any) => log.address.toLowerCase() === poolAddress.toLowerCase())
                 .map((log: any) => poolInterface.parseLog(log))
             const MintEvent = parsedLogs.filter((event: any) => event.name === 'Mint')[0]
-            const [sender, amount0, amount1] = MintEvent.args  // (※6)
+            const [sender, amount0, amount1] = MintEvent.args  // (※6)[]と{}どっち
             const [amountDepositedA, amountDepositedB] = addressA < addressB ? [amount0, amount1] : [amount1, amount0]
             const displayAmountDepositedA = ethers.utils.formatUnits(amountDepositedA, decimalsA)
             const displayAmountDepositedB = ethers.utils.formatUnits(amountDepositedB, decimalsB)
@@ -161,12 +164,48 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 const reserve0 = await pool.reserve0()
                 const reserve1 = await pool.reserve1()
                 const [reserveA, reserveB] = (addressA < addressB) ? [reserve0, reserve1] : [reserve1, reserve0]
-                const amountB: BigNumber = amountA.mul(reserveB).div(reserveA)
+                const amountB: BigNumber = amountA.mul(reserveB).div(reserveA)      // (※14)
                 const displayAmountB: string = ethers.utils.formatUnits(amountB, decimalsB)
                 setBField((prevState: TokenField) => { return { ...prevState, displayAmount: displayAmountB }})
+                hasAllowance(addressB, amountB).then(setHasAllowanceB)   // (※13)
+            } else {      // poolAddressが無かった時(新規トークンペア)用のUI(ボタンのタイプ)更新  (※19)
+                let amountB: BigNumber
+                try {
+                    amountB = ethers.utils.parseUnits(BField.displayAmount, decimalsB)    // (※15)
+                } catch (e: any) {     // (※16)
+                    alert(`Invalid 2nd token input: ${e.reason}`)
+                    return
+                }
                 hasAllowance(addressB, amountB).then(setHasAllowanceB)
             }
         }
+        /**
+         * (※12)(※13)
+         * 意図せずうまくいっているかのように見えたやつ。Add Liquidity ダイアログが閉じるとき仮に(※12)のcloseAndCleanUp()でhasAllowanceBをリセット
+         * しなかった場合、ダイアログを閉じても前回の別のトークンのhasAllowanceB(仮にtrueだとする)の状態を維持しっぱなしなので、新規のトークンペアをプ
+         * ールしようとして尚且つB側に未だApproveが住んでいないトークンを入力したら本来updateDisplayAmountBのelse側でhasAllowanceBの状態をtrueにし
+         * たりfalseにしたり設定するはずが、elseがなくてもhasAllowanceBがtrueになっててまるでうまくいっているかのように見えてしまう(A側は(※18)で状態
+         * を更新するから問題は起きない)。実際に、まだelseを記述していない時でさらにcloseAndCleanUp()のsetHasAllowanceB(false)も記述していない時に上
+         * 記の誤認を起こした。意図せずうまくいっているので間違いに気づきにくいがおかしいと思えるポイントがある。それは新規トークンペアをプールする時B側
+         * に未だApproveが済んでいないトークンを入力してもApprove住になるという点。これがelse(※19)を作るモチベーションになる。しかし、else以降を記述
+         * したらhasAllowanceBをリセットする理由ないような...hasAllowanceAもリセットする意味ないような...毎回必ずhasAllowance関数で状態を設定してる
+         * からcloseAndCleanUp()内のsetHasAllowanceA(false)とsetHasAllowanceB(false)はいらない、多分...
+         * 
+         * (※14)(※15)
+         * elseじゃない側とelse側の違い。setBFieldをしてるかしてないか(というよりsetBFieldをする場所)。elseじゃない側はこの関数内でsetBFieldしてる。
+         * else側はhandleAmountBChangeでsetBFieldしてる。どちらもsetHasAllowanceBでUIのボタンの状態を更新しているものの、elseじゃない側はB数値欄の
+         * 値を弾き出すがelse側はそれをしない、手動で入力するから。
+         * (※14)は自動ではじき出された値をamountBとしてBFieldのdisplayAmountにセットしてかつhasAllowanceでAllowanceのチェック。
+         * 一方(※15)は手動で入力した値をamountBとしてhasAllowanceでAllowanceのチェック。BFieldのdisplayAmountへのセットは手動で入力した際に
+         * handleAmountBChangeで既に済んでいる。
+         * 
+         * (※16)(※17)
+         * catch側になる例。(※17)のif文の条件でトークン未選択,数値未入力を防いでる。けど例えば(!isNewPair || BField.displayAmount !== "")を取
+         * り除くと、新規のトークンペアの時トークンB側が未入力でもif文の条件を通過してしまう。そしてupdateDisplayAmountBが起動するがその中のif文
+         * は新規トークンペアの場合else側になる。するとtryで何をしようとするかというと、未入力状態の空欄をparseしようとしてしまうのだ。これは出来な
+         * いということでcatch側が起動し警告を出すことになる。ただこの例はあえて(!isNewPair || BField.displayAmount !== "")を取り除いたわけで、
+         * そうでないならいつcatch側になるんだろう...
+        */
 
         const hasAllowance = async function(address: string, requiredAllowance: BigNumber): Promise<boolean> {
             const allowance: BigNumber = await getAllowance(address)
@@ -177,7 +216,8 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             }
         }
 
-        if ((AField.address !== "") && (BField.address !== "") && (AField.displayAmount !== "") && (AField.address !== BField.address)) {
+        // (※17)
+        if ((AField.address !== "") && (BField.address !== "") && (!isNewPair || BField.displayAmount !== "") && (AField.displayAmount !== "") && (AField.address !== BField.address)) {
             const addressA = AField.address
             const addressB = BField.address
             const tokenAData: TokenData = loadTokenData(chainId, addressA)!
@@ -189,22 +229,40 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 alert(`Invalid 1st token input: ${e.reason}`)
                 return
             }
-            hasAllowance(addressA, amountA).then(setHasAllowanceA)
+            hasAllowance(addressA, amountA).then(setHasAllowanceA)   // (※18)
             updateDisplayAmountB(addressA, addressB, amountA, tokenBData.decimals)
-            setIsField(true)
+            setIsFilled(true)
         } else {
-            setIsField(false)
+            setIsFilled(false)
         }
+        /** 
+         * (※17)
+         * ifの条件(!isNewPair || BField.displayAmount !== "")について。
+         * これがない場合、既にトークンペアがある時は問題ないが、新規トークンペアの時B側数値欄未入力でも条件を突破してしまいupdateDisplayAmountB内
+         * の(※15)で空欄をパースしようとしてしまい(※16)の警告がでる。
+         * 条件から !isNewPair を取り除き(BField.displayAmount !== "")にすると逆の問題がおき、新規トークンペアの時は上手くいくが既にトークンペア
+         * がある時に問題がおきる。B側数値欄に自動で値が出力されないのだ。既にトークンペアがある時はB側数値欄以外が埋まった時に条件を通過し
+         * updateDisplayAmountBが発火しその中でB側の数値を弾き出してほしいのだが、B側数値欄を埋めていないのでif文の条件を突破できず
+         * updateDisplayAmountBを発動できない。「B側数値欄に出力する値を計算をするためにB側数値欄に値を入力しろ」というチンプンカンプンな事になって
+         * しまっているのだ。
+         * 新規トークンペアじゃない時は(BField.displayAmount !== "")という条件を打ち消して、新規トークンペアの時には(BField.displayAmount !== "")
+         * という条件が発動するようにしたいわけだ。ということで(!isNewPair || BField.displayAmount !== "")となった。if文の条件がややこしくなったの
+         * で以下に簡単にして説明する。まず(A && B && C && D && E)という形になっている。A,B,C,D,Eが全て真であればok。A,B,C,D,Eの内の1つである
+         * (!isNewPair || BField.displayAmount !== "")が真になるには(!isNewPair) か (BField.displayAmount !== "") のいずれか(または両方)が真で
+         * あればok。もっと言うと、(isNewPair が false) または (BField.displayAmount が空文字列じゃない)であればok。もっと言うと、
+         * (新規トークンペアじゃない)または(B側数値欄が空欄じゃない)であればok。
+         * これによって、B側数値欄を入力しないとダメだけど、B側数値欄が空欄でも新規トークンペアじゃないなら大丈夫だよって条件になった。
+        */
 
         // if input amount is empty, then clear the output amount
         if (AField.displayAmount === "") {
             setBField((prevState: TokenField) => { return { ...prevState, displayAmount: ""}})
         }
-    }, [AField.address, BField.address, AField.displayAmount, chainId, signer, getPoolAddress, getAllowance])
+    }, [AField.address, BField.address, AField.displayAmount, BField.displayAmount, chainId, signer, isNewPair, getPoolAddress, getAllowance])
 
     useEffect(() => {
         if (AField.address !== "" && AField.address === BField.address) {
-            alert("Pleace select a defferent token")
+            alert("Please select a different token")
             return
         }
         /** 
@@ -249,7 +307,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                         as={Fragment}
                         enter="ease-out duration-300"
                         enterFrom="opacity-0 scale-95"
-                        enterTo="opacity-100 scale=100"
+                        enterTo="opacity-100 scale-100"
                         leave="ease-in duration-200"
                         leaveFrom="opacity-100 scale-100"
                         leaveTo="opacity-0 scale-95"
@@ -308,8 +366,8 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                                         { isNewPair ? (<div>New Pool will be created. Please deposit tokens of equal value at current market prices.</div>) : null }
                                     </div>
                                     <div className={style.buttonOuterContainer}>
-                                        {!isField ? (<button type="button" className={style.inactiveConfirmButton}>Confirm</button>) : null}
-                                        {(isField && (!hasAllowanceA || !hasAllowanceB)) ? (
+                                        {!isFilled ? (<button type="button" className={style.inactiveConfirmButton}>Confirm</button>) : null}
+                                        {(isFilled && (!hasAllowanceA || !hasAllowanceB)) ? (
                                             <div className={style.buttonListContainer}>
                                                 {!hasAllowanceA ?
                                                     (<button onClick={e => handleApproval(e, AField.address, setHasAllowanceA)} className={style.approveButton}>
@@ -321,7 +379,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                                                     </button>) : null}
                                             </div>
                                         ) : null}
-                                        {(isField && hasAllowanceA && hasAllowanceB) ? (
+                                        {(isFilled && hasAllowanceA && hasAllowanceB) ? (
                                             <button type="button" onClick={handleAdd} className={style.confirmButton}>Confirm</button>
                                         ) : null}
                                     </div>
@@ -345,7 +403,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 show={isTxConfirmedOpen}
                 onClose={() => setIsTxConfirmedOpen(false)}
             />
-            {/* (※11) messageの箇所について */}
+            {/* (※11) messageの部分について */}
         </>
     )
 }
@@ -353,6 +411,13 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
  * このonCloseに登録したものを発火させるトリガーとなるアクションが多分ある。例えばウィンドウの外をクリックとか。おそらくinputタグのonChangeに近い。input
  * タグのテキストタイプの場合、onChangeは入力欄に何か入力されるたびに発火する。それみたいな感じで、DialogタグのonCloseはウィンドウの外をクリックするたび
  * に発火する。多分。
+ * 
+ * (※9)(※10)(※11)
+ * txInfo.symbolAじゃなくてloadTokenData(chainId, BField.address).symbolでも良さそうに見えるが良くない。なぜならcloseAndCleanUp()でBFieldをリセット
+ * しているから。プールするトークンを入力するAdd Liquidityダイアログが閉じるタイミングでBFieldはリセットされる。
+ * 厳密にいうと実はloadTokenData(chainId, BField.address).symbolの値は2個目のダイアログにちゃんと映っているのだが、一瞬過ぎるのだ。試しに(※10)の位置
+ * で数秒待ち時間を作ってみればちゃんと値が表示されているのが確認できる。しかし通常この箇所は一瞬で計算されてしまうのでまるで表示されていないかのように見
+ * えるのだ。ということでcloseAndCleanUp()しても大丈夫なようにtxInfo.symbolAの方にする必要がある。
 */
 
 export default AddLiquidityDialog

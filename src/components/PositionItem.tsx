@@ -170,6 +170,9 @@ const PositionItem = (props: PositionItemProps) => {
              * 
              * (※4)
              * amount0 でもokだと思うけどなんで amount0.toString() ってしてるんだろ...
+             * 文字列だと、数値が非常に大きい場合や正確な精度を維持できる。文字列形式ではJavaScriptの数値型の限界を超える大きな数値をそのままの精度
+             * で表現できる。BigNumberオブジェクトは、ethers.jsによって使える大きな数値を正確に扱うためのやつ。これを用いることで大きな数値の演算が
+             * 可能。ethers.utils.formatUnits()の第一引数は通常文字列形式またはBigNumber...計算したいならBigNumberにすればくらいの程度なのかな...
             */
     
             const token1Contract = new ethers.Contract(address1, uniswapV2StyleDexERC20.abi, signer.provider)

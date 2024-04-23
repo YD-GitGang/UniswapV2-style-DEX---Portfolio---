@@ -101,7 +101,12 @@ const Pool = () => {
             const tokenList = loadTokenList(chainId)
             retrieveAllPositions(tokenList)
         }
-    }, [currentAccount, chainId, signer, getPoolAddress, isOpen])
+    }, [currentAccount, chainId, signer, getPoolAddress, isOpen])   // (※12)
+    /** 
+     * (※12)
+     * ここにisOpenを含めることで、プールしてAddLiquidityDialogダイアログを閉じた瞬間にプールした内容を反映した新しいポジション情報をUIに映し出すこ
+     * とができる。
+    */
 
     return (
         <div className={style.outerContainer}>
