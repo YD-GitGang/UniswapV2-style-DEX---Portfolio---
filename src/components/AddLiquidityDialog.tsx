@@ -215,6 +215,11 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 return true
             }
         }
+        /** 
+         * hasAllowanceをuseEffectの中で書いてる理由。useEffectの外で書いても多分別にいいが、ブロックチェーンにallowanceをawaitで確認するという
+         * 時間のかかる処理があるので、そんな時間のかかる処理を再レンダリングの度にしたくない。この処理を必要とする時(useEffect内の内容)のみこの処
+         * 理が走って欲しい。
+        */
 
         // (※17)
         if ((AField.address !== "") && (BField.address !== "") && (!isNewPair || BField.displayAmount !== "") && (AField.displayAmount !== "") && (AField.address !== BField.address)) {
@@ -232,7 +237,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             hasAllowance(addressA, amountA).then(setHasAllowanceA)   // (※18)
             updateDisplayAmountB(addressA, addressB, amountA, tokenBData.decimals)
             setIsFilled(true)
-        } else {
+        } else {     // 元々setIsFilled初期値falseだからこのelseでfalseにするやつ不要に思えるけど、UIで打ち直した時用。
             setIsFilled(false)
         }
         /** 
@@ -383,6 +388,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                                             <button type="button" onClick={handleAdd} className={style.confirmButton}>Confirm</button>
                                         ) : null}
                                     </div>
+                                    {/* ↑(※20) */}
                                 </div>
                             </Dialog.Panel>
                         </div>
@@ -418,6 +424,12 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
  * 厳密にいうと実はloadTokenData(chainId, BField.address).symbolの値は2個目のダイアログにちゃんと映っているのだが、一瞬過ぎるのだ。試しに(※10)の位置
  * で数秒待ち時間を作ってみればちゃんと値が表示されているのが確認できる。しかし通常この箇所は一瞬で計算されてしまうのでまるで表示されていないかのように見
  * えるのだ。ということでcloseAndCleanUp()しても大丈夫なようにtxInfo.symbolAの方にする必要がある。
+ * 
+ * (※20)
+ * ・ボタンを作る方法にはbuttonタグとdivタグとinputタグがある。
+ * ・type="button"について。button はデフォルトで type="submit" を持ちフォームタグ内で使用された場合にフォームを送信してしまう可能性がある。そのため、
+ * button タグの振る舞いを明確にするために type="button" を追加することが推奨される。このコードでは、button タグがフォーム送信の挙動を引き起こすこと
+ * はないが、将来的にコードの構造が変わる可能性を考えると、安全のために type="button" を追加しておくことは賢明。
 */
 
 export default AddLiquidityDialog
