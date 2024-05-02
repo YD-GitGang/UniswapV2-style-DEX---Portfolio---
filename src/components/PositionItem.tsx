@@ -115,7 +115,7 @@ const PositionItem = (props: PositionItemProps) => {
                 transactionHash: tx.hash
             })
             setIsTxSubmittedOpen(true)
-            const receipt = await tx.wait()
+            const receipt = await tx.wait()  // (※15)
 
             //DEBUG
             await new Promise(resolve => setTimeout(resolve, 3000));

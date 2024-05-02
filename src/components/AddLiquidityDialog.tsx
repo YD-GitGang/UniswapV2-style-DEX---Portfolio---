@@ -83,6 +83,11 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             setterBoolean(true)
         }             //successがfalseだった時のエラー文をelseで書くとどっかのエラー文と重複するかな...
     }
+    /** 
+     * (※21)の方は関数の引数にset関数を渡さず(※18)のように関数の実行を待ってその後thenでset関数を発動させてるけど、ここでは関数の引数にset関数を渡して
+     * 関数内でset関数を発動させてる。(※20)でthenを使わなかった理由はおそらく、onClickの中に関数.thenという形が書けないからか、書くとわかりずらいとかか
+     * な、多分。
+    */
 
     async function handleAdd(e: MouseEvent<HTMLElement>) {
         const success = await sendAddTransaction()
@@ -90,14 +95,21 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             closeAndCleanUp()   // (※9)
         }             //successがfalseだった時のエラー文をelseで書かなくてもsendAddTransaction内で警告だしてる
     }
+    /** 
+     * (※9)
+     * Swap.tsxでは(※25)みたいにswapのトランザクションしたあとsetStatus(Status.WAIT_FOR_INPUT)で最初の状態に戻してるけど、今回はcloseAndCleanUp関
+     * 数の中でFieldをemptyFieldにすることで最初の状態に戻してる。emptyFieldに状態更新されたので再レンダリングするわけだが入力欄や選択トークンが空に状
+     * 態変化するのでuseEffectをスルーしない事になる。useEffectにより入力欄や選択トークンが空なら表示ボタンのステータスは最初のになる。入力欄や選択トー
+     * クンが空だとステータスが最初のやつになるのはSwapも同じ。
+    */
 
     async function sendAddTransaction(): Promise<boolean> {
         const addressA = AField.address
         const displayAmountA = AField.displayAmount
         const symbolA = loadTokenData(chainId, addressA)!.symbol     // !について。possibly 'undefined'。
         const decimalsA = loadTokenData(chainId, addressA)!.decimals     // !について。possibly 'undefined'。
-        const tokenA = new ethers.Contract(addressA, uniswapV2StyleDexERC20.abi, signer)
-        const amountADesired = ethers.utils.parseUnits(displayAmountA, decimalsA)
+        const tokenA = new ethers.Contract(addressA, uniswapV2StyleDexERC20.abi, signer)  //(※27)
+        const amountADesired = ethers.utils.parseUnits(displayAmountA, decimalsA)  // (※28)
 
         const addressB = BField.address
         const displayAmountB = BField.displayAmount
@@ -105,12 +117,24 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
         const decimalsB = loadTokenData(chainId, addressB)!.decimals     // !について。possibly 'undefined'。
         const tokenB = new ethers.Contract(addressB, uniswapV2StyleDexERC20.abi, signer)
         const amountBDesired = ethers.utils.parseUnits(displayAmountB, decimalsB)
+        /** 
+         * (※27)
+         * viewしかしないからsignerじゃなくてsigner!.providerでいい,,,ていうか(※26)のtokenA.addressはaddressAでもいいな...そし
+         * たら(※27)なくて済む。
+         * 
+         * (※28)
+         * Etheからwei、weiからEtheへ桁調整するタイミング。UIではユーザーにわかりやすく10.59Etheみたいに単位をEtheで表示するが、内部で計算するとき
+         * はweiでやるので桁を調整する(指定のdecimal分0つける)。(※28)でparesUnitsした値を(※26)のルーターコントラクトのaddLiquidity関数に渡して
+         * るけど、コントラクトの関数には桁を調整済みの値が来るという仕様で作ってる事を知ってる必要がある。このDEXてば基本的に単位調整は入力直後と
+         * 出力直前に行う。入力値はそのまま使わず単位を調整してから計算に使って、出力値は他に何も計算に使う予定はなくなり出力するのみになったときに単
+         * 位を調整する。
+        */
 
         const deadline = Math.floor(Date.now() / 1000) + 120
         const router = new ethers.Contract(routerAddress, uniswapV2StyleDexRouter.abi, signer)
 
         try {
-            const tx = await router.addLiquidity(tokenA.address, tokenB.address, amountADesired, amountBDesired, 0, 0, currentAccount, deadline)
+            const tx = await router.addLiquidity(tokenA.address, tokenB.address, amountADesired, amountBDesired, 0, 0, currentAccount, deadline) //(※26)
             setTxInfo({
                 ...emptyTxInfo,
                 symbolA,
@@ -122,12 +146,12 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             // DEBUG
             await new Promise(resolve => setTimeout(resolve, 3000));
 
-            const receipt = await tx.wait()
+            const receipt = await tx.wait()   // (※30)
             const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
             const poolAddress = await getPoolAddress(addressA, addressB)
             const parsedLogs = receipt.logs     // (※8) logにして2個目のダイアログでなかった
                 .filter((log: any) => log.address.toLowerCase() === poolAddress.toLowerCase())
-                .map((log: any) => poolInterface.parseLog(log))
+                .map((log: any) => poolInterface.parseLog(log))   // (※29)
             const MintEvent = parsedLogs.filter((event: any) => event.name === 'Mint')[0]
             const [sender, amount0, amount1] = MintEvent.args  // (※6)[]と{}どっち
             const [amountDepositedA, amountDepositedB] = addressA < addressB ? [amount0, amount1] : [amount1, amount0]
@@ -155,6 +179,25 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             return false
         }
     }
+    /**
+     * (※26)
+     * トランザクションを送るとメタマスクが勝手に起動してくれる理由。多分、detectしてブラウザのメタマスクからゲットしたsignerのおかげだろう。コン
+     * トラクトの関数を起動するときに引数にコントラクトアドレスとabiとsignerを渡してるけど、メタマスクが起動するのに関係あるのはsignerだけ。多分
+     * このsignerに反応してブラウザのメタマスクが立ち上がる。そしてalchemyとかinfuraみたいなプロバイダーからurlゲットしなくても、メタマスクがプ
+     * ロバイダーの代わりになってくれるからurlはいらない。ネットワークはメタマスクのUIで選択してるから、そのネットワークにメタマスクがプロバイダー
+     * となってトランザクションを受け渡してくれる。ごっちゃになってはいけないのは、デプロイする時はメタマスクつかわないんだから、alchemyから貰った
+     * urlを使う必要がある。メタマスクのときはネットワークの選択とかをメタマスクのUIでチョイスしてたけど、alchemy使うときはhardhat.config.tsでネ
+     * ットワーク設定とかを書き込んでる。
+     * 
+     * (※29)
+     * Swap.tsxの(※16)やPositionItem.tsxの(※15)とは別のパターンでレシート扱ってるだけ。アドレスでフィルターしてる理由は、Mintイベントを出して
+     * るのはプールコントラクトだけではないかもしれないからだろう…だけど、そうだとしたらSwap(Swap.tsx)やRemove(PositionItem.tsx)の時もアドレス
+     * でフィルターした方がいいような...まぁMintイベントを出してるのが一ヶ所だけなら別にいいんだろうけど...
+     * 
+     * (※30)
+     * レシートについての参考記事
+     * https://medium.com/coinmonks/ethereum-data-transaction-receipt-trie-and-logs-simplified-30e3ae8dc3cf
+    */
 
     useEffect(() => {
         const updateDisplayAmountB = async function(addressA: string, addressB: string, amountA: BigNumber, decimalsB: number) {
@@ -207,7 +250,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
          * そうでないならいつcatch側になるんだろう...
         */
 
-        const hasAllowance = async function(address: string, requiredAllowance: BigNumber): Promise<boolean> {
+        const hasAllowance = async function(address: string, requiredAllowance: BigNumber): Promise<boolean> {  //(※21)
             const allowance: BigNumber = await getAllowance(address)
             if (allowance.lt(requiredAllowance)) {
                 return false
@@ -219,6 +262,8 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
          * hasAllowanceをuseEffectの中で書いてる理由。useEffectの外で書いても多分別にいいが、ブロックチェーンにallowanceをawaitで確認するという
          * 時間のかかる処理があるので、そんな時間のかかる処理を再レンダリングの度にしたくない。この処理を必要とする時(useEffect内の内容)のみこの処
          * 理が走って欲しい。
+         * 
+         * Swap.tsxの(※24)とやりたいことは同じ。
         */
 
         // (※17)
@@ -409,14 +454,19 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
                 show={isTxConfirmedOpen}
                 onClose={() => setIsTxConfirmedOpen(false)}
             />
-            {/* (※11) messageの部分について */}
+            {/* (※11) messageの部分 (※22)onCloseの部分 */}
         </>
     )
 }
 /** 
+ * (※22)
  * このonCloseに登録したものを発火させるトリガーとなるアクションが多分ある。例えばウィンドウの外をクリックとか。おそらくinputタグのonChangeに近い。input
  * タグのテキストタイプの場合、onChangeは入力欄に何か入力されるたびに発火する。それみたいな感じで、DialogタグのonCloseはウィンドウの外をクリックするたび
  * に発火する。多分。
+ * onClose()って、ダイアログの外をクリックしたら()内を実行するよ、って事かな？onClose()は名前的に、ダイアログをクローズして()内の処理をする、って事だと
+ * 思ってたけど多分違う。閉じるわけじゃなくて、「ダイアログの外をクリックしたときに何をしますか？」って事、多分。でなきゃshowと機能が重複する。showを
+ * falseにしたら閉じるのに、onCloseいらないじゃんってなる。onCloseの()内空欄にしたら、onCloseでダイアログ閉じたのにshowではtrueだけど、ダイアログ閉じ
+ * んの開くのどっち？ってなるもんね。
  * 
  * (※9)(※10)(※11)
  * txInfo.symbolAじゃなくてloadTokenData(chainId, BField.address).symbolでも良さそうに見えるが良くない。なぜならcloseAndCleanUp()でBFieldをリセット
@@ -426,7 +476,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
  * えるのだ。ということでcloseAndCleanUp()しても大丈夫なようにtxInfo.symbolAの方にする必要がある。
  * 
  * (※20)
- * ・ボタンを作る方法にはbuttonタグとdivタグとinputタグがある。
+ * ・ボタンを作る方法にはbuttonタグとdivタグとinputタグなどがある。
  * ・type="button"について。button はデフォルトで type="submit" を持ちフォームタグ内で使用された場合にフォームを送信してしまう可能性がある。そのため、
  * button タグの振る舞いを明確にするために type="button" を追加することが推奨される。このコードでは、button タグがフォーム送信の挙動を引き起こすこと
  * はないが、将来的にコードの構造が変わる可能性を考えると、安全のために type="button" を追加しておくことは賢明。
