@@ -79,7 +79,7 @@ const Swap = () => {
         const success = await sendSwapTransaction()  // (※20)
         if (success) {
             setInField(prevState => { return { ...prevState, displayAmount: ''}})   // (※14)
-            setStatus(Status.WAIT_FOR_INPUT)
+            setStatus(Status.WAIT_FOR_INPUT)   // (※25)
             //setOutField(emptyField)  　　←　setInFieldが空になったらuseEffectでsetOutFieldも空になるからこれ要らない。
         }
     }
@@ -213,7 +213,7 @@ const Swap = () => {
              * outFieldのdisplayAmountはユーザーがUIで確認する暫定の値。txInfoの amountOutConfirmed が実際の値。
             */
 
-            const checkAllowance = async function(addressIn: string, amountIn: BigNumber) {     // async function 名前(){} の書き方エラーになる
+            const checkAllowance = async function(addressIn: string, amountIn: BigNumber) {   //(※24) async function 名前(){} の書き方エラーになる
                 const allowance = await getAllowance(addressIn)
                 if (allowance.lt(amountIn)) {
                     setStatus(Status.NEED_APPROVAL)   // (※17)
