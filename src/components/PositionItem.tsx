@@ -87,11 +87,12 @@ const PositionItem = (props: PositionItemProps) => {
         const liquidity = await pool.balanceOf(currentAccount)   // propsにあるからこれ不要
         const allowance = await pool.allowance(currentAccount, routerAddress)
         if (liquidity.gt(allowance)) {
-            const tx0 = await pool.approve(routerAddress, MAX_INT256).catch((error: any) => {   // (※14)
-                console.log('Error while calling pool.approve in handleRemove')
-                return false
-            })
-            await tx0.wait()
+            await pool.approve(routerAddress, MAX_INT256)     // (※14)
+                .then((tx0: any) => tx0.wait())
+                .catch((error: any) => {
+                    console.log('Error while calling pool.approve in handleRemove')
+                    return false
+                })
         }
         /**
          * (※14) 
