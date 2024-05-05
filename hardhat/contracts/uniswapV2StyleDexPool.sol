@@ -54,7 +54,7 @@ contract uniswapV2StyleDexPool is uniswapV2StyleDexERC20("uniswapV2StyleDex", "U
         if (_totalSupply == 0) {
             require(amount0 * amount1 > MINIMUM_LIQUIDITY * MINIMUM_LIQUIDITY, 'uniswapV2StyleDexPool: BELOW_MINIMUM_LIQUIDITY');
             liquidity = Math.sqrt(amount0 * amount1) - MINIMUM_LIQUIDITY;
-            _mint(address(0), MINIMUM_LIQUIDITY);
+            _mint(address(0), MINIMUM_LIQUIDITY);   // (※6)
         } else {
             liquidity = Math.min(amount0 * _totalSupply / reserve0, amount1 * _totalSupply / reserve1);  //(※1)
         }
@@ -69,6 +69,20 @@ contract uniswapV2StyleDexPool is uniswapV2StyleDexERC20("uniswapV2StyleDex", "U
          = 追記: おそらく切り捨てられる。(リテラル同士の除算では、任意の精度で小数点以下も結果に含まれるとか)
         */
     }
+    /** 
+     - (※6)
+     - 一度作ったプールは空にならない。
+     - 一度作ったプールは、中身のトークンペアの量が0になって消滅することはない。なぜならアドレス0に少量の流動性トークをロックしてるから。細かく見
+     - ていく。流動性トークンを全世界にある全供給量の内どれだけ返したかという比と、プールにあるトークンの内どれだけ引き戻せるかという比は一致する。
+     - 例えば、全世界に流動性トークンが200で回っていて、その内自分は60持っている。そしてAトークンが50、Bトークンが30入ってるプールがあるとする。
+     - 自分の持ち分の流動性トークンから20だけ返したとする。つまり全体の10%(20/200)返したということだ。すると過去に流動性を提供したAとBのプールか
+     - ら取り戻せる各トークン量は、トークンAが50の10％、トークBが30の10%となる。この話なら、流動性トークンを保有してる全世界の流動性提供者が一斉
+     - に返して200の内200(100%)返したら、プール内の各トークンも全量が流動性提供者に返り、プールが空っぽになる筈だ。しかし実際は違う。新しいプール
+     - が作られ最初の流動性トークンが発行されるとき、(※6)で少量をアドレス0に送って誰も何も出来ないようにロックしてる。つまり、全世界の流動性提供
+     - 者が流動性トークンを全てプールに返しても、アドレス0の分だけは返せていないのだ。200の内200返したつもりが実は199しか返せていないので、プール
+     - から取り出せる各トークン量は、トークAは50×(199/200)で、トークBは30×(199/200)となる。ほんの僅かだけトークンAとBがプールに残るのだ。しかし
+     - この性質がいったいどこで恩恵を受けるのだろう。プールが空になった場合の挙動を省きたいとか？
+    */
     
     function burn (address to) external returns(uint amount0, uint amount1) {
         IERC20 token0Contract = IERC20(token0);
