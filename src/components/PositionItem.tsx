@@ -92,7 +92,7 @@ const PositionItem = (props: PositionItemProps) => {
                 .catch((error: any) => {
                     console.log('Error while calling pool.approve in handleRemove')
                     return false
-                })
+                })  // (※16)
         }
         /**
          * (※14) 
@@ -101,6 +101,21 @@ const PositionItem = (props: PositionItemProps) => {
          * ン押した時に検出したメタマスクからゲットしたやつ。つまりユーザーのアカウント。UIを操作してるユーザーがmsg.senderにちゃんとなってる。
          * ・ethereumプロバイダーに問い合わせてブロックチェーンに書きこむ(読み取りではなくて)ときはエラーになる可能性もあるからcatch。ユーザーがUI
          * 画面のキャンセルボタンを押したりした時とかかな。書き込まれるまでに時間かかってキャンセルの余地結構あるのかなきっと...
+         * ・awaitとthenの挙動
+         * awaitのおかけでpool.approveの呼び出しが完了するまでそれ以降の行((※16)以降)のコードが計算されることはない。thenは直前のpool.approveの結
+         * 果が帰ってくるのを待ち、結果が帰ってきたらそれを受け取り実行される。awaitがなかったら次の行((※16)以降)のコードが計算され、裏側で
+         * pool.approveの呼び出しが完了するのを待ち、呼び出しが完了したタイミングでthen以降の処理に移る。thenの中のtx0.wait()についてはawaiしていな
+         * いので、いつ完了するか未知数のtx0.wait()の処理を裏側で待ちつつ、次の行((※16)以降)のコードの計算に進む。ただし、tx0.wait()の結果に依存する
+         * 処理が後続する場合はその処理をtx0.wait()の解決後に実行しないといけないから、tx0.wait()をawaitするとか何かしてコードを書き換える必要がある。
+         * ・キャンセルボタンを押してトランザクションを途中で辞めた時の挙動。
+         * (※14)でメタマスク立ち上がってここでキャンセルボタン押すと(※16)以降に行って、approveしてないから(※17)が上手くいかずcatchのほうになる。で
+         * はapproveした場合はというと(※17)でメタマスクのキャンセルボタン押したらcatchの方に行くと思いきや多分try全体の次(※18)に行にいくからcatchは
+         * 素通り(つまりアラートのポップアップは出ない)。
+         * あと余談だが、許可のトランザクションとトークン移動のトランザクションをここでは1つの関数(sendRemoveTransaction)でやりきってるが、Swap.tsxと
+         * AddLiquidityDialog.tsxでは別々にしてる。ここでは許可のボタンをわざわざ作らずRemoveボタンの1回でメタマスクを2度起動させ許可からトークン移動
+         * を一連で終わらせてる。具体的に言うと、Swap.tsxは(※18)と(※19)のように分離してて、AddLiquidityDialog.tsxは(※26)と(※31)のように分離して
+         * るが、ここでは(※14)と(※17)のように1つの関数内にまとまってる。だからSwap.tsxやAddLiquidityDialog.tsxと違って許可のトランザクションをキャ
+         * ンセルした時catchのアラートポップアップがでるんだろう。
         */
 
         // Step 2. Call removeLiquidity
@@ -108,7 +123,7 @@ const PositionItem = (props: PositionItemProps) => {
         const router = new ethers.Contract(routerAddress, uniswapV2StyleDexRouter.abi, signer)
 
         try {
-            const tx = await router.removeLiquidity(address0, address1, liquidity, 0, 0, currentAccount, deadline)
+            const tx = await router.removeLiquidity(address0, address1, liquidity, 0, 0, currentAccount, deadline)   // (※17)
             setTxInfo({
                 displayAmount0: '',
                 displayAmount1: '',
@@ -146,7 +161,7 @@ const PositionItem = (props: PositionItemProps) => {
                 alert(`[Reason for transaction failure] ${reason}`)  // solidity の require で設定したエラー文が出る
             }
             return false
-        }
+        }                  // (※18)
     }
 
     useEffect(() => {

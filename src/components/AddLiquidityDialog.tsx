@@ -78,7 +78,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
     */
 
     async function handleApproval(e: MouseEvent<HTMLElement>, address: string, setterBoolean: React.Dispatch<React.SetStateAction<boolean>>) {
-        const success: boolean = await sendApprovalTransaction(address)
+        const success: boolean = await sendApprovalTransaction(address)   // (※31)
         if (success) {
             setterBoolean(true)
         }             //successがfalseだった時のエラー文をelseで書くとどっかのエラー文と重複するかな...
