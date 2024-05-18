@@ -49,6 +49,6 @@ hardhat/cache
 hardhat/artifacts
 
 
-# .eth-gas-report.json
-# .hardhat-reports/
-# .history/
+.eth-gas-report.json
+.hardhat-reports/
+.history/

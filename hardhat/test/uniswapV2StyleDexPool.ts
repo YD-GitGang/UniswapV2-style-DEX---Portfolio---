@@ -30,7 +30,7 @@ describe("uniswapV2StyleDexPool test", function() {
         await factory.createPool(token0.address, token1.address);
         //1つ下でawaitしてるからwait()不要?
         const poolAddress = await factory.getPool(token0.address, token1.address);
-        const pool = new ethers.Contract(poolAddress, uniswapV2StyleDexPool.abi, ethers.provider);
+        const pool = new ethers.Contract(poolAddress, uniswapV2StyleDexPool.abi, ethers.provider);   // (※4)
         return { account0, account1, account2, factory, pool, token0, token1 };
     }
 
