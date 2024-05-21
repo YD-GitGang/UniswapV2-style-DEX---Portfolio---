@@ -39,7 +39,7 @@ async function main() {
     //(※3)---------------------------------------------------------------------------------------------------
     
     const Factory = await ethers.getContractFactory("uniswapV2StyleDexFactory")
-    const factory = await Factory.deploy()
+    const factory = await Factory.deploy()    // (※12)
     await factory.deployed()
 
     const Router = await ethers.getContractFactory("uniswapV2StyleDexRouter")   // (※7)
@@ -90,6 +90,10 @@ async function main() {
  * ・?について(possibly 'undefined')
  * ターミナルのnetworkオプションで打ち込んだネットワーク名がpolygonでもsepoliaでもない可能性があるし、そもそもhardhat.config.tsや.envにpolygonや
  * sepoliaの情報を記述し忘れてたりする場合もある。だから「possibly 'undefined'」なんだろう。
+ * 
+ * (※12)
+ * polygonのoption
+ * polygonにデプロイするからoptionとしてガス代を渡す必要あるかなって思ったけど、不要だった。ERC20のデプロイとmintの時は必要だったのに...何故だ...
 */
 
 /** 
