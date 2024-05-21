@@ -134,7 +134,7 @@ const PositionItem = (props: PositionItemProps) => {
             const receipt = await tx.wait()  // (※15)
 
             //DEBUG
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // await new Promise(resolve => setTimeout(resolve, 3000));
 
             const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
             const parsedLogs = []
