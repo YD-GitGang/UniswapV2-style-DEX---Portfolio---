@@ -144,7 +144,7 @@ const AddLiquidityDialog = (props: addLiquidityDialogProps) => {
             setIsTxSubmittedOpen(true)
 
             // DEBUG
-            await new Promise(resolve => setTimeout(resolve, 3000));
+            // await new Promise(resolve => setTimeout(resolve, 3000));
 
             const receipt = await tx.wait()   // (※30)
             const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)

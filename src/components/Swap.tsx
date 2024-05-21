@@ -121,7 +121,7 @@ const Swap = () => {
             setIsTxSubmittedOpen(true)
 
             //DEBUG
-            await new Promise(resolve => setTimeout(resolve, 3000))  // hardhatネットワーク用の3秒待機
+            // await new Promise(resolve => setTimeout(resolve, 3000))  // hardhatネットワーク用の3秒待機
 
             const receipt = await tx.wait()   // (※16)
             const poolInterface = new ethers.utils.Interface(uniswapV2StyleDexPool.abi)
