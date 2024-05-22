@@ -192,3 +192,11 @@ main().catch((error) => {
     console.error(error)
     process.exitCode = 1
 })
+
+/** 
+ * package.jsonのscriptsの"hardhat compile"が"npx hardhat compile"じゃない件について。
+ * hardhatがプロジェクトのnode_modules/.binディレクトリにインストールされている場合、npxを使用しなくても直接コマンドを実行できるらしい。
+ * つまり、npm install --save-dev hardhat のコマンドを実行してhardhatをプロジェクトにインストールしておく必要がある。
+ * "compile": "npx hardhat compile" は、npxを使ってhardhatコマンドを実行。"compile": "hardhat compile" は、プロジェクト内にインスト
+ * ールされているhardhatコマンドを直接実行。
+*/
