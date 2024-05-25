@@ -11,7 +11,7 @@ const SwapPage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>milkSwap</title>
+                <title>MooSwap</title>
             </Head>
             <Header page='swap'/>
             <Swap />

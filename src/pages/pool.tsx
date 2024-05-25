@@ -11,7 +11,7 @@ const PoolPage: NextPage = () => {
     return (
         <>
             <Head>
-                <title>milkSwap | Pool</title>
+                <title>MooSwap | Pool</title>
             </Head>
             <Header page='pool'/>
             <Pool/>

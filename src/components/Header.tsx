@@ -38,7 +38,7 @@ const Header = (props: {page: string}) => {
         <div className={style.container}>
             <div className={style.logo}>
                 <Image src={logo} alt='logo' height={50}/>
-                <div className="text-xs">milkSwap</div>
+                <div className="text-xs">MooSwap</div>
             </div>
             <div className={style.navContainer}>
                 <Link href="/swap">
