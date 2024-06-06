@@ -5,7 +5,7 @@ import './libraries/Math.sol';
 import './interfaces/IERC20.sol';
 import './uniswapV2StyleDexERC20.sol';
 
-contract uniswapV2StyleDexPool is uniswapV2StyleDexERC20("uniswapV2StyleDex", "UDX", 18) {
+contract uniswapV2StyleDexPool is uniswapV2StyleDexERC20("uniswapV2StyleDex", "MOO", 18) {
     uint public constant MINIMUM_LIQUIDITY = 10**3;
 
     address immutable public factory;
