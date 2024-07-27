@@ -12,6 +12,7 @@ const SwapPage: NextPage = () => {
         <>
             <Head>
                 <title>MooSwap</title>
+                <meta name="google-site-verification" content="MeeG3wA-7GLXGU8yjKeP8SrdVF1_97lRaok4pGgys4Q" />
             </Head>
             <Header page='swap'/>
             <Swap />
