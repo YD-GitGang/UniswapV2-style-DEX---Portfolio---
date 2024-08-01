@@ -17,7 +17,7 @@ contract uniswapV2StyleDexFactory {
         
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
         uniswapV2StyleDexPool poolContract = new uniswapV2StyleDexPool{salt: salt}();  // (※1)
-        poolContract.initialize(token0,token1);
+        poolContract.initialize(token0,token1);  // (※4)
 
         pool = address(poolContract);     // (※3)
         getPool[token0][token1] = pool;
@@ -40,4 +40,11 @@ contract uniswapV2StyleDexFactory {
  - (※3)
  - アドレスをゲットするときの書き方がTypescriptとSolidityで少し違う。
  - Typescriptでは .address だがSolidityでは address() だ(例: address(poolContract), address(this), address(0))。
+ -
+ - (※4)
+ - プールアドレスを計算する想定でその計算に必要な要素を何処かに書き留めとくとしたとき、コンストレインに引数があると、何桁あるんだかわからない
+ - 大きいバイトコードを書き留めなくてはならない。トークンペアが確定しない限り計算が前に進まないから、大きいバイトコードをハッシュ化して短くし
+ - とくことが出来ないのだ。一方コンストレインの引数をなくせば、トークンペアに依存しないから、トークンペアを知らなくても計算が出来る。つまり、
+ - プールアドレスを計算するのに必要な要素をどこかに書き留めるとき、バイトコードをハッシュ化して32バイトに短くして保管できる。これがコンストレ
+ - インにトークンペアの引数を渡さなかった理由。
 */
