@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    background-color: #0c110e;
+  }
+  
   body {
       background: linear-gradient(to bottom, #2b3230 0%, #0c110e 100%);
       width: 100vw;
