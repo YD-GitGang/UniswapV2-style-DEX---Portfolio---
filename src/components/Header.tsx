@@ -37,10 +37,8 @@ const Header = (props: {page: string}) => {
     return (
         <div className={style.container}>
             <div className={style.logo}>
-                <Link href="/swap">
-                    <Image src={logo} alt='logo' height={50}/>
-                    <div className="text-xs">MooSwap</div>
-                </Link>
+                <Image src={logo} alt='logo' height={50}/>
+                <div className="text-xs">MooSwap</div>
             </div>
             <div className={style.navContainer}>
                 <Link href="/swap">

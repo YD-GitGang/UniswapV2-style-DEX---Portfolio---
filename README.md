@@ -5,32 +5,31 @@
   </a>
 </p>
 
-Polygon mainnet (PoS) で利用できるAMM型DEXです。Supported tokens are WETH, USDC.e, USDT, WBTC, and DAl.  
-WebSite URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.app/)
+This is an AMM-based DEX available on the Polygon mainnet (PoS). Supported tokens are WETH, USDC.e, USDT, WBTC, and DAl.  
+Site URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.app/)
 
-## 主な機能
+## Main Features
 ### Swap
 <table>
   <tr>
-    <td><img src="public/img/swap.gif" alt="GIF demo swap"></td>
-    <td>WETHを手放してDAIを手に入れたいといったように、トークンを交換したい時に使う機能。しかしこの場合、WETHとDAIのプールが既に存在している必要がある。交換レートは定数積公式により決定される。手数料は0.3%。この手数料が、プールを作ってくれた流動性提供者への報酬になる。</td>
+    <td><img src="public/img/swap.gif" alt="GIF demo swap" style="width: 426px;"></td>
+    <td>This feature is used when you want to exchange tokens, such as exchanging WETH for DAI. However, in this case, a pool containing WETH and DAI must already exist. The exchange rate is determined by a constant product formula. The fee is 0.3%. This fee is the reward for the liquidity providers who created the pool.</td>
   </tr>
 </table>
 
 ### Add Liquidity
 <table>
   <tr>
-    <td><img src="public/img/add_liquidity.gif" alt="GIF demo add liquidity"></td>
-    <td>swapをしたい人のために、2種類のトークンを提供する機能。これによりプールが作られる。もし既にプールが存在すればそのプールに追加される。トークンを提供してくれた流動性提供者には、流動性トークンを発行する。</td>
+    <td><img src="public/img/add_liquidity.gif" alt="GIF demo add liquidity" style="width: 426px;"></td>
+    <td>This feature allows liquidity providers to offer two types of tokens for those who want to swap. This will create a pool if one does not already exist, or it will add liquidity to the existing pool. Liquidity providers are issued liquidity tokens.</td>
   </tr>
 </table>
 
 ### Remove Liquidity
 <table>
   <tr>
-    <td><img src="public/img/remove_liquidity.gif" alt="GIF demo remove liquidity"></td>
-    <td>プールに提供していた2種類のトークンを返して欲しい時に使う機能。流動性トークンを渡す事で、提供していたトークンが返ってくる。この時、提供していた量よりも少し増えて戻ってくるので、それが儲けになる。この増えた分は、swapの手数料から来ている。
-</td>
+    <td><img src="public/img/remove_liquidity.gif" alt="GIF demo remove liquidity" style="width: 426px;"></td>
+    <td>This feature is used when you want to withdraw the two types of tokens you provided to the pool. Liquidity tokens are burned, and the tokens you originally provided are returned to you. If the amount you provided has increased, the difference is your profit. This increase comes from the swap fees.</td>
   </tr>
 </table>
 
@@ -38,14 +37,14 @@ WebSite URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel
 > If this is your first time accessing this site, please connect the Meta Mask manually as you can see. After that, the "Connect Wallet" button will become active.  
 > ![GIF demo connect wallet](public/img/connect_wallet.gif)
 
-## システム構成の概要
-### 全体の構成
+## Overview of System Configuration
+### Overall Configuration
 ![img overall system structure](public/img/readme_material_overview_03_reSize.jpg)
-### コントラクトの構成
+### Contract Configuration
 ![img contract structure](public/img/readme_material_hardhat_02_reSize.jpg)
 
-## 使用技術
-| Category                 | Skills                                                                                                     |
+## Technologies Used
+| Category                 | Technology                                                                                                 |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | Languages                | TypeScript (4.9.5)&ensp; /&ensp; SOLIDITY (0.8.17)&ensp; /&ensp; HTML&ensp; /&ensp; CSS&ensp; /&ensp; BASH |
 | Frameworks               | NEXT.js (13.2.1)&ensp; /&ensp; Hardhat (2.12.7)&ensp; /&ensp; tailwindcss (3.2.7)                          |
@@ -57,7 +56,7 @@ WebSite URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel
 | Hosting・Infrastructure  | Vercel&ensp; /&ensp; alchemy  　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 |
 | Design                   | heroicons (2.0.16)                                                                                         |
 
-## Directory structure
+## Directory Structure
 ### Overall directory structure
 ![img overall system structure](public/img/readme_material_directory_overview_02_reSize.jpg)
 
@@ -68,106 +67,90 @@ WebSite URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel
 ![img overall system structure](public/img/readme_material_directory_hardhat_02_reSize.jpg)
 
 ## Getting Started
-### リポジトリをクローンする前の事前準備(Windowsの場合)
-#### wslとUbuntuのインストール(参考 https://learn.microsoft.com/ja-jp/windows/wsl/install)
+### Preliminary setup before cloning the repository (for Windows)
+#### WSL and Ubuntu installation (Reference: https://learn.microsoft.com/ja-jp/windows/wsl/install)
 ```bash
 wsl --install -d Ubuntu-20.04
-
-# その後ユーザーネームとパスワードを設定
 ```
 
-#### wslにNode.jsをインストール(参考　https://learn.microsoft.com/ja-jp/windows/dev-environment/javascript/nodejs-on-wsl)
+#### Node.js installation on WSL (Reference: https://learn.microsoft.com/ja-jp/windows/dev-environment/javascript/nodejs-on-wsl)
 ```bash
-# curlをインストール(Web上にあるものをダウンロードするために必要なパッケージ)
-# この後パスワードを聞かれる場合があるので、上で設定したパスワードを入力
-sudo apt-get install curl
+# Install curl (a package necessary for downloading files from the web)
+$ sudo apt-get install curl
 
-# nvmをインストール
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-
-# BASHに書き加えた内容を反映させるためPowerShellを一旦閉じて立ち上げ直し、wsl と打ち込み再起動。
-# Windowsターミナルを使用しているのであれば wsl の入力は不要。(参考　https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment#set-up-windows-terminal)
-#もしくは下記のコマンドを実行。
-source ~/.bashrc
-
-# 正常にインストールされているか確認
-$ nvm --version
-0.39.3
-
-# Nodeをインストール
-$ nvm install 18.12.1
-
-# 正常にインストールされているか確認
-$ node --version
-v18.12.1
-$ npm --version
-8.19.2
-```
-#### vscodeがwslにアクセスできるようにするためにVSCodeに以下の拡張機能をインストール  
-https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack  
-(参考 https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/wsl-vscode)  
-PowerShellまたはWindoowsターミナルのwsl上から`code .` でVSCodeを再起動すると、ターミナルのディレクトリがwslをポイントしてることが確認できる。(VSCodeの左下にWSLのリンクマークが出ているのが確認できる。)
-
-> [!NOTE]
-> コントロールパネルの「Windowsの機能の有効化または無効化」で確認できる以下の項目は、今までの手順を踏めば自動で有効になっているはずですが、上手く動作しない場合は確認して手動で有効にして下さい。  
-> - Hyper-V  
-> - Linux用Windowsサブシステム  
-> - 仮想マシンプラットフォーム
-
-### リポジトリをクローンする前の事前準備(Macの場合)
-```bash
-# nvmをインストール
+# Install nvm
 $ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
 
-# ターミナルを再起動
+# To apply the changes made to BASH, close and restart PowerShell. Then, enter "wsl" to start WSL.
+# If you are using Ubuntu through Windows Terminal, you do not need to enter "wsl." (参考　https://learn.microsoft.com/ja-jp/windows/wsl/setup/environment#set-up-windows-terminal)
+# Alternatively, execute the following command:
+$ source ~/.bashrc
 
-# 正常にインストールされているか確認
+# Verify nvm installation
 $ nvm --version
 0.39.3
 
-# Nodeをインストール
+# Install Node.js
 $ nvm install 18.12.1
 
-# 正常にインストールされているか確認
+# Verify successful installation
+$ node --version
+v18.12.1
+$ npm --version
+8.19.2
+```
+#### To allow VSCode to access WSL, install the following extension pack in VSCode
+https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack  
+(Reference: https://learn.microsoft.com/ja-jp/windows/wsl/tutorials/wsl-vscode)  
+From PowerShell’s WSL (or Ubuntu in Windows Terminal), restart VSCode by typing `code .`. You can confirm that the terminal directory in VSCode is pointing to WSL. (You should see a link icon in the bottom-left corner of VSCode.)
+
+> [!NOTE]
+> The following items, which can be checked in the Control Panel under "Turn Windows features on or off," should have been automatically enabled by following the previous steps. However, if things are not working correctly, please check and manually enable them if necessary.
+> - Hyper-V  
+> - Windows Subsystem for Linux
+> - Virtual Machine Platform
+
+### Preliminary setup before cloning the repository (for Mac)
+```bash
+# Install nvm
+$ curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+
+# Restart the terminal
+
+# Verify nvm installation
+$ nvm --version
+0.39.3
+
+# Install Node.js
+$ nvm install 18.12.1
+
+# Verify successful installation
 $ node --version
 v18.12.1
 $ npm --version
 8.19.2
 ```
 
-#### VSCodeでcodeコマンドのインストール  
-`Cmd + Shift + P`でコマンドパレットを開き`Shell command: install'code'command in PATH`　を入力。
+#### Install the "code" command in VSCode
+Open the command palette with `Cmd + Shift + P`, enter `Shell command: install 'code' command in PATH`, and enable the ability to run the "code" command. This will allow you to launch VSCode from the terminal using `code .`.
 
-### 開発環境セットアップ
+### Development Environment Setup
 ```bash
-# リポジトリをローカルにクローン
-git clone https://github.com/YD-GitGang/UniswapV2-style-DEX---Portfolio---.git
+# Clone the repository locally
+$ git clone https://github.com/YD-GitGang/UniswapV2-style-DEX---Portfolio---.git
 
-# モジュールのインストールとコントラクトのコンパイル
-npm ci && cd hardhat && npm ci && npx hardhat compile && cd ../ 
+# Install modules and compile contracts
+$ npm ci && cd hardhat && npm ci && npx hardhat compile && cd ../ 
 ```
-#### Hardhatネットワークを使うためのメタマスクの設定。
-ポリゴンのメインネットを使うとお金がかかるので、開発の際はHardhatネットワークを使用。
-メタマスクの設定のネットワークに以下の内容ををAdd Networkで追加してください。  
-- Network name : Local HardhatNetwork  
-- NewRPC URL : http://127.0.0.1:8545  
-- Chain ID : 31337  
-- Currency symbol : ETH  
 
-hardhatネットワーク用にメタマスクのアカウントを3つほど作成。
-
-> [!IMPORTANT]
-> hardhatネットワークを起動していない状態でメタマスクでhardhatネットワークを使おうとすると、メタマスクが固まることがあります。hardhatネットワークを再起動したら、hardhatネットワーク用に使用しているテストアカウントを設定の高度な設定の「アクティビティタブのデータを消去」を実行してアカウントをリセットして下さい。この操作で消える情報というのは、今選択しているネットワークの今選択しているアカウントの情報のみです。
-
-#### 疑似的に本番環境を再現するため事前にコントラクトをデプロイ
+#### Deploy Contracts for Simulating a Pseudo-Production Environment:
 
 ```bash
 npm run test-node
 ```
-hardhatネットワークを起動して、hardhatネットワークにFactoryコントラクトとRouterコントラクトをデプロイし、4つのトークンをデプロイし、アカウント1とアカウント2にそれぞれ20000ずつ送金し、4つのトークンのいくつかのペアでプールを作成。
-FactoryコントラクトとRouterコントラクトと4つのトークンのアドレスはdataフォルダに入力済み。
+This command starts the Hardhat network and deploys the Factory contract and Router contract to the Hardhat network. Additionally, it deploys four tokens and transfers 20,000 units of each token to Hardhat Account 1 and Hardhat Account 2. It also creates pools with some pairs of these four tokens. The addresses of the deployed Factory contract, Router contract, and the four tokens are already recorded in the data folder.
 
-#### run the development server:
+#### Run the development server:
 
 ```bash
 npm run dev
@@ -175,23 +158,42 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-#### VSCode拡張機能
-Solidity (by Juan Blanco)
+#### Metamask Setup for Using the Hardhat Network
+Since using the Polygon mainnet can be costly, use the Hardhat network during development. Add the following settings in Metamask under *Settings* > *Networks*:
+- Network name : Local HardhatNetwork  
+- New RPC URL : http://127.0.0.1:8545  
+- Chain ID : 31337  
+- Currency symbol : ETH  
 
-:+1: ここまでの手順で、Hardhatネットワークを使いローカルで開発できる環境が完成。
+Then, create three accounts in Metamask for the Hardhat network.
 
-## コントラクトを本番環境にdeploy
-`.env`ファイルを作成し`PRIVATE_KEY="hoge"`, `SEPOLIA_URL`, `POLYGON_URL` を書いておいて下さい
+> [!IMPORTANT]
+> - If you restart the Hardhat network with `npm run test-node`, please reset your Metamask account used for the Hardhat network by going to *Settings* > *Advanced* > *Clear activity and nonce data*. (Note: This operation will only clear the information related to the currently selected network and the currently selected account.)
+>
+> - If you try to use Metamask with the Hardhat network while the Hardhat network is not running, Metamask may freeze.
 
-`scriptsフォルダ`の`deployUniswapStyleDex.ts`を実行してコントラクトをネットワークにデプロイする際は、`hardhat.config.ts`のコメントアウトしてるコード全てを解除して下さい。
-フロントエンドをホストするときは再びコメントアウトして下さい。
+#### VSCode Extensions
+- Solidity (by Juan Blanco)
+
+At this point, your local development environment using the Hardhat network should be set up.
+
+## Deploy the Contract to Production
+Create a `.env` file, and write `PRIVATE_KEY="hoge"`, `SEPOLIA_URL="fuga"`, and `POLYGON_URL="piyo"` in it.
+
+Execute the `deployUniswapStyleDex.ts` script in the `scripts` folder to deploy the contract to the network (Polygon mainnet). At this time, uncomment the parts of the `hardhat.config.ts` file that are currently commented out (When hosting on Vercel, comment them out again):
 
 ```bash
 $ cd hardhat
 
-$ npx hardhat run --network sepolia scripts/deployUniswapStyleDex.ts
+$ npx hardhat run --network polygon scripts/deployUniswapStyleDex.ts
 
-# コンソールに表示されたコントラクトのデータをdataフォルダのcontract.jsonに追加して下さい。
+$ cd ../
+
+# At this time, the contract data will be displayed in the console. Please add it to the "contract.json" file in the "data" folder.
+```
+You should be able to verify that the contract deployed to the production environment is functioning properly by checking it at `localhost:3000` :
+```bash
+$ cd hardhat
 
 $ npx hardhat compile
 
@@ -202,22 +204,21 @@ $ npm run build
 $ npm run start
 ```
 
-localhost:3000 でページが表示される
+### Host the Frontend Code on Vercel
+When you deployed the contract to the production environment, you uncommented parts of `hardhat.config.ts`, but please comment them out again. The reason is that the `.env` file used during the contract deployment is not included in the GitHub repository.
 
-### フロントエンドのコードをVercelにホスト
-コントラクトを本番環境にデプロイした際に`hardhat.config.ts`のコメントアウトを解除した箇所を、再びコメントアウトして下さい。コントラクトデプロイ時に使用した`.env`ファイルは`.gitignore`ではじいてリポジトリには無いので、ホスト時に`.env`ファイルが読み取れずエラーになるのを防ぐため。
-```bash
-# vercelにホスト時に設定するビルドコマンド
-$ npm run compile --prefix hardhat && npm run build
-
-# vercelにホスト時に設定するインストールコマンド
-$ npm ci && npm ci --prefix hardhat
+Build command to set in Vercel when hosting:
 ```
-:+1: ここまでの手順で、本番環境にデプロイしたコントラクトに、VercelにホストしたUIからアクセス出来るようになる。
+npm run compile --prefix hardhat && npm run build
+```
+Install command to set in Vercel when hosting:
+```
+npm ci && npm ci --prefix hardhat
+```
+At this point, the UI hosted on Vercel should be able to access the contract deployed to production.
 
 ## Test coverage rate
 
------------------------------------|----------|----------|----------|----------|----------------|
 File                               |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
 -----------------------------------|----------|----------|----------|----------|----------------|
  contracts/                        |    94.55 |    68.63 |       84 |    94.84 |                |
@@ -239,6 +240,11 @@ All files                          |    88.59 |    63.97 |    75.56 |    89.55 |
 -----------------------------------|----------|----------|----------|----------|----------------|
 
 
+## Fees and other notes
+- The swap fee is 0.3% of the deposit.
+- The minimum transaction amount for swap, remove, and add liquidity is set to 0 (a 100% slippage tolerance).
+- The remove amount is not adjustable and will be the full amount.
+
 ## License
 
 This project is unlicensed and all its contents are proprietary and confidential. No part of this project may be copied, modified, or distributed without the explicit permission of the author. Unauthorized use is strictly prohibited.
@@ -246,8 +252,3 @@ This project is unlicensed and all its contents are proprietary and confidential
 ## Donations
 
 If you would like to support the development of future projects or help pay my next month's rent, you can donate ETH to `0x84fE8C7704a24a0604863718522c8426885105Af`.
-
-> [!WARNING]
-> - The swap fee is 0.3% of the deposit.
-> - The minimum transaction amount for swap, remove, and add liquidity is set to 0 (a 100% slippage tolerance).
-> - The remove amount is not adjustable and will be the full amount.
