@@ -10,25 +10,25 @@ Site URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.ap
 
 ## Main Features
 ### Swap
-<table>
+<table style="width: 100%;">
   <tr>
-    <td><img src="public/img/swap.gif" alt="GIF demo swap" style="width: 426px;"></td>
+    <td style="width: 426px;"><img src="public/img/swap.gif" alt="GIF demo swap" style="max-width: 100%;"></td>
     <td>This feature is used when you want to exchange tokens, such as exchanging WETH for DAI. However, in this case, a pool containing WETH and DAI must already exist. The exchange rate is determined by a constant product formula. The fee is 0.3%. This fee is the reward for the liquidity providers who created the pool.</td>
   </tr>
 </table>
 
 ### Add Liquidity
-<table>
+<table style="width: 100%;">
   <tr>
-    <td><img src="public/img/add_liquidity.gif" alt="GIF demo add liquidity" style="width: 426px;"></td>
+    <td style="width: 426px;"><img src="public/img/add_liquidity.gif" alt="GIF demo add liquidity" style="max-width: 100%;"></td>
     <td>This feature allows liquidity providers to offer two types of tokens for those who want to swap. This will create a pool if one does not already exist, or it will add liquidity to the existing pool. Liquidity providers are issued liquidity tokens.</td>
   </tr>
 </table>
 
 ### Remove Liquidity
-<table>
+<table style="width: 100%;">
   <tr>
-    <td><img src="public/img/remove_liquidity.gif" alt="GIF demo remove liquidity" style="width: 426px;"></td>
+    <td style="width: 426px;"><img src="public/img/remove_liquidity.gif" alt="GIF demo remove liquidity" style="max-width: 100%;"></td>
     <td>This feature is used when you want to withdraw the two types of tokens you provided to the pool. Liquidity tokens are burned, and the tokens you originally provided are returned to you. If the amount you provided has increased, the difference is your profit. This increase comes from the swap fees.</td>
   </tr>
 </table>
@@ -237,7 +237,6 @@ File                               |  % Stmts | % Branch |  % Funcs |  % Lines |
   uniswapV2StyleDexLibraryTest.sol |      100 |      100 |      100 |      100 |                |
 -----------------------------------|----------|----------|----------|----------|----------------|
 All files                          |    88.59 |    63.97 |    75.56 |    89.55 |                |
------------------------------------|----------|----------|----------|----------|----------------|
 
 
 ## Fees and other notes
