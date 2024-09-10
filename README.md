@@ -8,42 +8,38 @@
 This is an AMM-based DEX available on the Polygon mainnet (PoS). Supported tokens are WETH, USDC.e, USDT, WBTC, and DAl.  
 Site URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.app/)
 
-## Main Features
+## Main Features :cow2:
 ### Swap
-<table style="width: 100%;">
-  <tr>
-    <td style="width: 426px;"><img src="public/img/swap.gif" alt="GIF demo swap" style="max-width: 100%;"></td>
-    <td>This feature is used when you want to exchange tokens, such as exchanging WETH for DAI. However, in this case, a pool containing WETH and DAI must already exist. The exchange rate is determined by a constant product formula. The fee is 0.3%. This fee is the reward for the liquidity providers who created the pool.</td>
-  </tr>
-</table>
+This feature is used when you want to exchange tokens, such as exchanging WETH for DAI. However, in this case, a pool containing WETH and DAI must already exist. The exchange rate is determined by a constant product formula. The fee is 0.3%. This fee is the reward for the liquidity providers who created the pool.
+<p align="center"> 
+  <img src="public/img/swap.gif" alt="GIF demo swap" width="426">
+</p>
 
 ### Add Liquidity
-<table style="width: 100%;">
-  <tr>
-    <td style="width: 426px;"><img src="public/img/add_liquidity.gif" alt="GIF demo add liquidity" style="max-width: 100%;"></td>
-    <td>This feature allows liquidity providers to offer two types of tokens for those who want to swap. This will create a pool if one does not already exist, or it will add liquidity to the existing pool. Liquidity providers are issued liquidity tokens.</td>
-  </tr>
-</table>
+This feature allows liquidity providers to offer two types of tokens for those who want to swap. This will create a pool if one does not already exist, or it will add liquidity to the existing pool. Liquidity providers are issued liquidity tokens.
+<p align="center"> 
+  <img src="public/img/add_liquidity.gif" alt="GIF demo add liquidity" width="426">
+</p>
 
 ### Remove Liquidity
-<table style="width: 100%;">
-  <tr>
-    <td style="width: 426px;"><img src="public/img/remove_liquidity.gif" alt="GIF demo remove liquidity" style="max-width: 100%;"></td>
-    <td>This feature is used when you want to withdraw the two types of tokens you provided to the pool. Liquidity tokens are burned, and the tokens you originally provided are returned to you. If the amount you provided has increased, the difference is your profit. This increase comes from the swap fees.</td>
-  </tr>
-</table>
+This feature is used when you want to withdraw the two types of tokens you provided to the pool. Liquidity tokens are burned, and the tokens you originally provided are returned to you. If the amount you provided has increased, the difference is your profit. This increase comes from the swap fees.
+<p align="center"> 
+  <img src="public/img/remove_liquidity.gif" alt="GIF demo remove liquidity" width="426">
+</p>
 
 > [!IMPORTANT]
-> If this is your first time accessing this site, please connect the Meta Mask manually as you can see. After that, the "Connect Wallet" button will become active.  
-> ![GIF demo connect wallet](public/img/connect_wallet.gif)
+> If this is your first time accessing this site, please connect the Meta Mask manually as you can see. After that, the "Connect Wallet" button will become active.
+> <p align="center"> 
+>   <img src="public/img/connect_wallet.gif" alt="GIF demo connect wallet" width="426">
+> </p>
 
-## Overview of System Configuration
+## Overview of System Configuration :cow2:
 ### Overall Configuration
 ![img overall system structure](public/img/readme_material_overview_03_reSize.jpg)
 ### Contract Configuration
 ![img contract structure](public/img/readme_material_hardhat_02_reSize.jpg)
 
-## Technologies Used
+## Technologies Used :cow2:
 | Category                 | Technology                                                                                                 |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
 | Languages                | TypeScript (4.9.5)&ensp; /&ensp; SOLIDITY (0.8.17)&ensp; /&ensp; HTML&ensp; /&ensp; CSS&ensp; /&ensp; BASH |
@@ -56,7 +52,7 @@ Site URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.ap
 | Hosting・Infrastructure  | Vercel&ensp; /&ensp; alchemy  　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 |
 | Design                   | heroicons (2.0.16)                                                                                         |
 
-## Directory Structure
+## Directory Structure :cow2:
 ### Overall directory structure
 ![img overall system structure](public/img/readme_material_directory_overview_02_reSize.jpg)
 
@@ -66,7 +62,7 @@ Site URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.ap
 ### The core directory for contracts
 ![img overall system structure](public/img/readme_material_directory_hardhat_02_reSize.jpg)
 
-## Getting Started
+## Getting Started :cow2:
 ### Preliminary setup before cloning the repository (for Windows)
 #### WSL and Ubuntu installation (Reference: https://learn.microsoft.com/ja-jp/windows/wsl/install)
 ```bash
@@ -177,7 +173,7 @@ Then, create three accounts in Metamask for the Hardhat network.
 
 At this point, your local development environment using the Hardhat network should be set up.
 
-## Deploy the Contract to Production
+## Deploy the Contract to Production :cow2:
 Create a `.env` file, and write `PRIVATE_KEY="hoge"`, `SEPOLIA_URL="fuga"`, and `POLYGON_URL="piyo"` in it.
 
 Execute the `deployUniswapStyleDex.ts` script in the `scripts` folder to deploy the contract to the network (Polygon mainnet). At this time, uncomment the parts of the `hardhat.config.ts` file that are currently commented out (When hosting on Vercel, comment them out again):
@@ -217,7 +213,7 @@ npm ci && npm ci --prefix hardhat
 ```
 At this point, the UI hosted on Vercel should be able to access the contract deployed to production.
 
-## Test coverage rate
+## Test coverage rate :cow2:
 
 File                               |  % Stmts | % Branch |  % Funcs |  % Lines |Uncovered Lines |
 -----------------------------------|----------|----------|----------|----------|----------------|
@@ -239,15 +235,15 @@ File                               |  % Stmts | % Branch |  % Funcs |  % Lines |
 All files                          |    88.59 |    63.97 |    75.56 |    89.55 |                |
 
 
-## Fees and other notes
+## Fees and other notes :cow2:
 - The swap fee is 0.3% of the deposit.
 - The minimum transaction amount for swap, remove, and add liquidity is set to 0 (a 100% slippage tolerance).
 - The remove amount is not adjustable and will be the full amount.
 
-## License
+## License :cow2:
 
 This project is unlicensed and all its contents are proprietary and confidential. No part of this project may be copied, modified, or distributed without the explicit permission of the author. Unauthorized use is strictly prohibited.
 
-## Donations
+## Donations :cow2:
 
 If you would like to support the development of future projects or help pay my next month's rent, you can donate ETH to `0x84fE8C7704a24a0604863718522c8426885105Af`.
