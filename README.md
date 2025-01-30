@@ -6,11 +6,12 @@
 </p>
 
 This is an AMM-based DEX available on the Polygon mainnet (PoS). Supported tokens are WETH, USDC.e, USDT, WBTC, and DAl.  
-Site URL [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.app/)
+**Site URL :** [https://mooswap-finance.vercel.app/](https://mooswap-finance.vercel.app/)  
+**Introduction Video :** [https://youtu.be/p3l29NaZ850](https://youtu.be/p3l29NaZ850)  
 
 ## Main Features :cow2:
 ### Swap
-This feature is used when you want to exchange tokens, such as exchanging WETH for DAI. However, in this case, a pool containing WETH and DAI must already exist. The exchange rate is determined by a constant product formula. The fee is 0.3%. This fee is the reward for the liquidity providers who created the pool.
+This feature is used when you want to exchange tokens, such as exchanging WETH for DAI. However, in this case, a pool containing WETH and DAI must already exist. The exchange rate is determined by a constant product formula. The fee is 0.3%. This fee serves as a reward for the liquidity providers who supplied tokens to the pool.
 <p align="center"> 
   <img src="public/img/swap.gif" alt="GIF demo swap" width="426">
 </p>
@@ -38,18 +39,21 @@ This feature is used when you want to withdraw the two types of tokens you provi
 ![img overall system structure](public/img/readme_material_overview_03_reSize.jpg)
 ### Contract Configuration
 ![img contract structure](public/img/readme_material_hardhat_02_reSize.jpg)
+#### View the deployed contracts on PolygonScan:
+- MooSwap Factory Contract : [https://polygonscan.com/address/0x3ba4f1F2e686D6dB374F55f797e0367CE3950178](https://polygonscan.com/address/0x3ba4f1F2e686D6dB374F55f797e0367CE3950178)
+- MooSwap Router Contract : [https://polygonscan.com/address/0xA89f42fa7987712bbe39a59E6cae56a5112241AC](https://polygonscan.com/address/0xA89f42fa7987712bbe39a59E6cae56a5112241AC)
 
 ## Technologies Used :cow2:
 | Category                 | Technology                                                                                                 |
 | ------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Languages                | TypeScript (4.9.5)&ensp; /&ensp; SOLIDITY (0.8.17)&ensp; /&ensp; HTML&ensp; /&ensp; CSS&ensp; /&ensp; BASH |
+| Languages                | TypeScript (4.9.5)&ensp; /&ensp; SOLIDITY (0.8.17)&ensp; /&ensp; Node.js (v18.12.1)&ensp; /&ensp; HTML&ensp; /&ensp; CSS&ensp; /&ensp; BASH |
 | Frameworks               | NEXT.js (13.2.1)&ensp; /&ensp; Hardhat (2.12.7)&ensp; /&ensp; tailwindcss (3.2.7)                          |
 | Libraries                | React (18.2.0)&ensp; /&ensp; ethers.js (5.7.2)&ensp; /&ensp; headless ui (1.7.12)                          |
 | Packages                 | nvm (0.39.3)&ensp; /&ensp; npm (8.19.2)&ensp; /&ensp; dotenv (16.0.3)&ensp; /&ensp; Commander.js (10.0.0)&ensp; /&ensp; PostCSS (8.4.21)&ensp; /&ensp; Autoprefixer (10.4.13)&ensp; /&ensp; METAMASK (2.0.0) |
 | Testing Frameworks       | MOCHA&ensp; /&ensp; chai                                                                                   |
-| Development Environments | Node.js (v18.12.1)&ensp; /&ensp; WSL2&ensp; /&ensp; ubuntu (20.04)                                         |
+| Development Environments | WSL2&ensp; /&ensp; ubuntu (20.04)                                         |
 | Development Tools        | git&ensp; /&ensp; GitHub&ensp; /&ensp; ESLint (8.35.0)                                                     |
-| Hosting・Infrastructure  | Vercel&ensp; /&ensp; alchemy  　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 |
+| Hosting・Infrastructure  | Vercel&ensp; /&ensp; alchemy                                                                               |
 | Design                   | heroicons (2.0.16)                                                                                         |
 
 ## Directory Structure :cow2:
